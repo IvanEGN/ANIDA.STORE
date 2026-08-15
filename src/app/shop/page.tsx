@@ -1,35 +1,28 @@
-import React from "react";
+"use client";
+
+import React, { Suspense } from "react";
 import { ProductCatalog } from "@/components/shop/ProductCatalog";
-import { INITIAL_PRODUCTS } from "@/data/initialData";
+import { useSearchParams } from "next/navigation";
 
-interface ShopPageProps {
-  searchParams: {
-    category?: string;
-    filter?: string;
-    search?: string;
-  };
-}
-
-export default function ShopPage({ searchParams }: ShopPageProps) {
-  const categoryParam = searchParams.category || (searchParams.filter === "new" ? "Novedades" : "ALL");
-
-  let filtered = INITIAL_PRODUCTS;
-  if (searchParams.search) {
-    const q = searchParams.search.toLowerCase();
-    filtered = INITIAL_PRODUCTS.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-    );
-  }
+function ShopContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category") || (searchParams.get("filter") === "new" ? "Novedades" : "ALL");
+  const searchQuery = searchParams.get("search") || "";
 
   return (
+    <ProductCatalog
+      initialCategory={categoryParam}
+      searchQuery={searchQuery}
+    />
+  );
+}
+
+export default function ShopPage() {
+  return (
     <div className="pt-4 pb-16">
-      <ProductCatalog
-        initialProducts={filtered}
-        initialCategory={categoryParam}
-      />
+      <Suspense fallback={<div className="text-center py-20 text-xs text-charcoal-400">Cargando catálogo...</div>}>
+        <ShopContent />
+      </Suspense>
     </div>
   );
 }

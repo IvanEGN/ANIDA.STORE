@@ -1,19 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { INITIAL_ORDERS } from "@/data/initialData";
+import { useStoreData } from "@/context/StoreDataContext";
 import { OrderRecord } from "@/types";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingBag, Eye, CheckCircle2, Truck, Clock, X } from "lucide-react";
+import { ShoppingBag, Eye, X } from "lucide-react";
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
+  const { orders, updateOrderStatus } = useStoreData();
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
 
   const handleStatusChange = (orderId: string, newStatus: any) => {
-    setOrders((prev) =>
-      prev.map((ord) => (ord.id === orderId ? { ...ord, orderStatus: newStatus } : ord))
-    );
+    updateOrderStatus(orderId, newStatus);
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, orderStatus: newStatus });
     }
@@ -37,74 +35,81 @@ export default function AdminOrdersPage() {
         </span>
       </div>
 
-      {/* Tabla de Pedidos */}
-      <div className="bg-white border border-charcoal-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-charcoal-50 border-b border-charcoal-200 text-charcoal-500 uppercase tracking-wider text-[10px]">
-              <tr>
-                <th className="py-3 px-4">No. Pedido</th>
-                <th className="py-3 px-4">Fecha</th>
-                <th className="py-3 px-4">Cliente</th>
-                <th className="py-3 px-4">Destino</th>
-                <th className="py-3 px-4">Total</th>
-                <th className="py-3 px-4">Pasarela</th>
-                <th className="py-3 px-4">Estado</th>
-                <th className="py-3 px-4 text-right">Detalle</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-charcoal-100 text-charcoal-800">
-              {orders.map((ord) => (
-                <tr key={ord.id} className="hover:bg-charcoal-50/40">
-                  <td className="py-3 px-4 font-mono font-semibold text-charcoal-950">
-                    {ord.orderNumber}
-                  </td>
-                  <td className="py-3 px-4 text-charcoal-500">{ord.date}</td>
-                  <td className="py-3 px-4">
-                    <p className="font-medium text-charcoal-950">{ord.customer.name}</p>
-                    <span className="text-[10px] text-charcoal-400">{ord.customer.email}</span>
-                  </td>
-                  <td className="py-3 px-4 text-charcoal-600">
-                    {ord.customer.city}, {ord.customer.state}
-                  </td>
-                  <td className="py-3 px-4 font-semibold text-charcoal-900">
-                    {formatPrice(ord.total)}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="px-2 py-0.5 bg-charcoal-100 font-mono text-[10px] font-medium text-charcoal-800">
-                      {ord.paymentMethod}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={ord.orderStatus}
-                      onChange={(e) => handleStatusChange(ord.id, e.target.value)}
-                      className="bg-transparent border border-charcoal-200 px-2 py-1 text-[11px] font-medium uppercase tracking-wider rounded-xs focus:outline-none focus:border-charcoal-900"
-                    >
-                      <option value="PENDING">Pendiente</option>
-                      <option value="PROCESSING">En Preparación</option>
-                      <option value="SHIPPED">Enviado</option>
-                      <option value="DELIVERED">Entregado</option>
-                      <option value="CANCELLED">Cancelado</option>
-                    </select>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <button
-                      onClick={() => setSelectedOrder(ord)}
-                      className="p-1.5 text-charcoal-600 hover:text-charcoal-950"
-                      title="Ver detalles completos"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Tabla o Estado Vacío */}
+      {orders.length === 0 ? (
+        <div className="bg-white border border-charcoal-200 p-12 text-center text-xs text-charcoal-400 space-y-2">
+          <ShoppingBag className="w-8 h-8 mx-auto stroke-1" />
+          <p className="uppercase tracking-wider">Aún no hay compras registradas en la tienda.</p>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white border border-charcoal-200 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-charcoal-50 border-b border-charcoal-200 text-charcoal-500 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3 px-4">No. Pedido</th>
+                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-4">Destino</th>
+                  <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Pasarela</th>
+                  <th className="py-3 px-4">Estado</th>
+                  <th className="py-3 px-4 text-right">Detalle</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-charcoal-100 text-charcoal-800">
+                {orders.map((ord) => (
+                  <tr key={ord.id} className="hover:bg-charcoal-50/40">
+                    <td className="py-3 px-4 font-mono font-semibold text-charcoal-950">
+                      {ord.orderNumber}
+                    </td>
+                    <td className="py-3 px-4 text-charcoal-500">{ord.date}</td>
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-charcoal-950">{ord.customer.name}</p>
+                      <span className="text-[10px] text-charcoal-400">{ord.customer.email}</span>
+                    </td>
+                    <td className="py-3 px-4 text-charcoal-600">
+                      {ord.customer.city}, {ord.customer.state}
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-charcoal-900">
+                      {formatPrice(ord.total)}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 bg-charcoal-100 font-mono text-[10px] font-medium text-charcoal-800">
+                        {ord.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <select
+                        value={ord.orderStatus}
+                        onChange={(e) => handleStatusChange(ord.id, e.target.value)}
+                        className="bg-transparent border border-charcoal-200 px-2 py-1 text-[11px] font-medium uppercase tracking-wider rounded-xs focus:outline-none focus:border-charcoal-900"
+                      >
+                        <option value="PENDING">Pendiente</option>
+                        <option value="PROCESSING">En Preparación</option>
+                        <option value="SHIPPED">Enviado</option>
+                        <option value="DELIVERED">Entregado</option>
+                        <option value="CANCELLED">Cancelado</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => setSelectedOrder(ord)}
+                        className="p-1.5 text-charcoal-600 hover:text-charcoal-950"
+                        title="Ver detalles completos"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-      {/* Modal de Detalle de Orden */}
+      {/* Modal Detalle */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-charcoal-950/60 backdrop-blur-xs" onClick={() => setSelectedOrder(null)} />
@@ -136,7 +141,6 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            {/* Artículos */}
             <div className="space-y-3">
               <p className="text-charcoal-400 text-[10px] uppercase tracking-wider">Prendas en este pedido</p>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">

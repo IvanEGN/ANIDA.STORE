@@ -49,7 +49,7 @@ export const Footer: React.FC = () => {
               <li><Link href="/#envios" className="hover:text-white transition-colors">Envíos & Rastreo</Link></li>
               <li><Link href="/#devoluciones" className="hover:text-white transition-colors">Cambios y Devoluciones</Link></li>
               <li><Link href="/#pagos" className="hover:text-white transition-colors">Pagos (Stripe, MP, SPEI, PayPal)</Link></li>
-              <li><Link href="/admin" className="hover:text-white transition-colors">Acceso Administrativo (CMS)</Link></li>
+              <li><Link href="/login" className="hover:text-white transition-colors">Mi Cuenta</Link></li>
             </ul>
           </div>
 

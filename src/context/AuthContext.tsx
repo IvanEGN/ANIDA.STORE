@@ -1,0 +1,90 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+export const ADMIN_EMAIL = "anida.store.mid@gmail.com";
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "CUSTOMER";
+  createdAt: string;
+}
+
+interface AuthContextType {
+  user: UserProfile | null;
+  isAdmin: boolean;
+  login: (email: string, password?: string, name?: string) => { success: boolean; error?: string };
+  logout: () => void;
+  isLoading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("anida_auth_user");
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (e) {
+      console.error("Error loading auth session", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = (email: string, password?: string, name?: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      return { success: false, error: "Ingresa un correo electrónico válido." };
+    }
+
+    const isAdministrator = cleanEmail === ADMIN_EMAIL.toLowerCase();
+
+    const loggedUser: UserProfile = {
+      id: `usr-${Date.now()}`,
+      name: name || (isAdministrator ? "Administrador anida" : cleanEmail.split("@")[0]),
+      email: cleanEmail,
+      role: isAdministrator ? "ADMIN" : "CUSTOMER",
+      createdAt: new Date().toISOString(),
+    };
+
+    setUser(loggedUser);
+    localStorage.setItem("anida_auth_user", JSON.stringify(loggedUser));
+    return { success: true };
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("anida_auth_user");
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAdmin: user?.role === "ADMIN" && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+        login,
+        logout,
+        isLoading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

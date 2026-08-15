@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface HeroProps {
   title?: string;
@@ -15,47 +15,36 @@ interface HeroProps {
 }
 
 export const HeroSection: React.FC<HeroProps> = ({
-  tagline = "ATELIER 2026 // EDICIÓN CÁPSULA",
+  tagline = "ATELIER // NUEVA TEMPORADA",
   title = "SILUETAS PURAS & ESTRUCTURA MINIMAL",
-  subtitle = "Prendas arquitectónicas confeccionadas en lino europeo y sedas orgánicas para un armario contemporáneo.",
+  subtitle = "Prendas de alta confección y materiales de origen ético.",
   ctaText = "DESCUBRIR COLECCIÓN",
   ctaLink = "/shop",
   mediaType = "IMAGE",
-  mediaUrl = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2000&q=85",
+  mediaUrl = "",
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
 
   return (
-    <section className="relative w-full h-[90vh] md:h-[94vh] overflow-hidden bg-charcoal-900 select-none">
+    <section className="relative w-full h-[85vh] md:h-[92vh] overflow-hidden bg-charcoal-950 select-none">
       {/* Contenedor Visual */}
       <div className="absolute inset-0 w-full h-full">
-        {mediaType === "VIDEO" ? (
-          <video
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            onLoadedData={() => setIsLoaded(true)}
-            className={`w-full h-full object-cover object-center transition-opacity duration-1000 ${
-              isLoaded ? "opacity-95" : "opacity-0"
-            }`}
-          >
-            <source src={mediaUrl} type="video/mp4" />
-          </video>
-        ) : (
+        {mediaUrl ? (
           <img
             src={mediaUrl}
-            alt="anida.store campaña editorial"
+            alt="anida.store portada"
             onLoad={() => setIsLoaded(true)}
-            className={`w-full h-full object-cover object-top transition-all duration-1000 scale-105 ${
+            className={`w-full h-full object-cover object-top transition-all duration-1000 scale-103 ${
               isLoaded ? "scale-100 opacity-90" : "opacity-0"
             }`}
           />
+        ) : (
+          /* Fondo de degradado estético y minimalista si no se ha subido foto todavía */
+          <div className="w-full h-full bg-gradient-to-tr from-charcoal-950 via-charcoal-900 to-charcoal-800" />
         )}
 
-        {/* Gradiente y atmósfera editorial tipo Zara/Alo */}
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/70 via-charcoal-950/20 to-black/20" />
+        {/* Gradiente cinematográfico */}
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/80 via-charcoal-950/20 to-black/30" />
       </div>
 
       {/* Capa de Texto Editorial */}
@@ -86,30 +75,13 @@ export const HeroSection: React.FC<HeroProps> = ({
             </Link>
 
             <Link
-              href="/shop?filter=new"
+              href="/shop"
               className="inline-flex items-center justify-center px-7 py-4 border border-white/50 text-white backdrop-blur-xs text-xs font-medium tracking-widest uppercase hover:border-white hover:bg-white/10 transition-all duration-300"
             >
-              Ver Novedades
+              Ver Catálogo
             </Link>
           </div>
         </div>
-      </div>
-
-      {/* Control de Audio en caso de video */}
-      {mediaType === "VIDEO" && (
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className="absolute top-8 right-8 z-20 text-white/80 hover:text-white p-2 rounded-full bg-black/30 backdrop-blur-xs transition-colors"
-          aria-label={isMuted ? "Activar sonido" : "Silenciar sonido"}
-        >
-          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
-      )}
-
-      {/* Indicador de scroll */}
-      <div className="absolute bottom-6 right-6 md:right-12 z-10 flex items-center space-x-2 text-white/70 text-[10px] tracking-widest uppercase">
-        <span className="w-8 h-[1px] bg-white/40" />
-        <span>Colección 2026</span>
       </div>
     </section>
   );

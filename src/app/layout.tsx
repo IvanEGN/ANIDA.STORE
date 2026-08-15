@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import { StoreDataProvider } from "@/context/StoreDataContext";
 import { CartProvider } from "@/context/CartContext";
 import { Navbar } from "@/components/common/Navbar";
 import { SlideCartDrawer } from "@/components/common/SlideCartDrawer";
@@ -8,8 +10,7 @@ import { Footer } from "@/components/common/Footer";
 export const metadata: Metadata = {
   title: "anida.store | Moda Minimalista & Sastrería Contemporánea",
   description:
-    "Tienda en línea de moda minimalista, cortes contemporáneos, lino orgánico y siluetas depuradas. Inspirado en el diseño limpio.",
-  keywords: ["anida", "moda minimalista", "ropa online", "sastrería", "lino orgánico", "vestidos", "zara aesthetic"],
+    "Tienda en línea de moda minimalista, cortes contemporáneos, lino orgánico y siluetas depuradas.",
 };
 
 export default function RootLayout({
@@ -20,12 +21,16 @@ export default function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <body className="min-h-screen flex flex-col bg-background text-charcoal-950 antialiased font-sans">
-        <CartProvider>
-          <Navbar />
-          <main className="flex-1 w-full">{children}</main>
-          <SlideCartDrawer />
-          <Footer />
-        </CartProvider>
+        <AuthProvider>
+          <StoreDataProvider>
+            <CartProvider>
+              <Navbar />
+              <main className="flex-1 w-full">{children}</main>
+              <SlideCartDrawer />
+              <Footer />
+            </CartProvider>
+          </StoreDataProvider>
+        </AuthProvider>
       </body>
     </html>
   );

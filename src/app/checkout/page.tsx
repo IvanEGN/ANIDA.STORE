@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { useStoreData } from "@/context/StoreDataContext";
+import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
-import { PaymentMethodType } from "@/types";
+import { PaymentMethodType, OrderRecord } from "@/types";
 import { 
   CreditCard, 
   Building2, 
@@ -19,6 +21,8 @@ import {
 
 export default function CheckoutPage() {
   const { cart, subtotal, shippingCost, discountAmount, discountCode, total, clearCart } = useCart();
+  const { addOrder } = useStoreData();
+  const { user } = useAuth();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("STRIPE");
   const [copiedClabe, setCopiedClabe] = useState(false);
@@ -27,8 +31,8 @@ export default function CheckoutPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: user?.name || "",
+    email: user?.email || "",
     phone: "",
     addressLine1: "",
     addressLine2: "",
@@ -56,13 +60,32 @@ export default function CheckoutPage() {
 
     setTimeout(() => {
       const orderNumber = `ANIDA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      setOrderCompleted({
+      const newOrderRecord: OrderRecord = {
+        id: `ord-${Date.now()}`,
         orderNumber,
-        paymentMethod,
+        date: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+        customer: {
+          name: formData.name || "Cliente Invitado",
+          email: formData.email || "cliente@anida.store",
+          phone: formData.phone || "No especificado",
+          addressLine1: formData.addressLine1 || "Dirección de entrega",
+          city: formData.city || "CDMX",
+          state: formData.state || "CDMX",
+          postalCode: formData.postalCode || "00000",
+          country: "México",
+        },
+        items: [...cart],
+        subtotal,
+        shipping: shippingCost,
         total,
-        customerEmail: formData.email || "cliente@anida.store",
-        speiClabe: "646180157023948512",
-      });
+        paymentMethod,
+        paymentStatus: paymentMethod === "SPEI" ? "PENDING" : "PAID",
+        orderStatus: "PROCESSING",
+        speiClabe: paymentMethod === "SPEI" ? "646180157023948512" : undefined,
+      };
+
+      addOrder(newOrderRecord);
+      setOrderCompleted(newOrderRecord);
       clearCart();
       setIsProcessing(false);
     }, 1500);
