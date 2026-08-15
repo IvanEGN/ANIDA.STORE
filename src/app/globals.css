@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FDFCFA;
+  --foreground: #161616;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar minimalista */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #FDFCFA;
+}
+::-webkit-scrollbar-thumb {
+  background: #C4C4C2;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #161616;
+}
+
+/* Utilitarios para ocultar scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Selección de texto refinada */
+::selection {
+  background-color: #161616;
+  color: #FDFCFA;
+}
