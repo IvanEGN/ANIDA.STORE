@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, ADMIN_EMAIL } from "@/context/AuthContext";
+import { useAuth, ADMIN_EMAILS } from "@/context/AuthContext";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Lock, ShieldAlert, ArrowRight } from "lucide-react";
 
@@ -13,7 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!isLoading) {
-      if (user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      if (user && ADMIN_EMAILS.some((adm) => adm.toLowerCase() === user.email.toLowerCase())) {
         setAuthorized(true);
       } else {
         setAuthorized(false);
@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Si no es el correo autorizado anida.store.mid@gmail.com
+  // Si no es un correo administrador autorizado
   if (!authorized) {
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4 bg-charcoal-50">
@@ -43,13 +43,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Área Restringida
             </span>
             <h1 className="text-xl font-light tracking-tight text-charcoal-950 uppercase">
-              Panel Administrativo CMS
+              Panel Administrativo ANIDA CMS
             </h1>
             <p className="text-xs text-charcoal-500 font-light leading-relaxed">
-              El acceso a este módulo está restringido exclusivamente a la cuenta oficial de administración: <br />
-              <strong className="text-charcoal-900 font-mono">{ADMIN_EMAIL}</strong>
+              El acceso a este módulo está restringido exclusivamente a la administración: <br />
+              <strong className="text-charcoal-900 font-mono">anidabyad@gmail.com</strong>
             </p>
           </div>
+
 
           <div className="pt-2 space-y-3">
             <Link

@@ -5,6 +5,7 @@ import { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { SizeGuideModal } from "@/components/shop/SizeGuideModal";
+import { SizeRequestModal } from "@/components/product/SizeRequestModal";
 import { 
   ChevronDown, 
   Ruler, 
@@ -13,8 +14,12 @@ import {
   RotateCcw, 
   Check, 
   Heart,
-  Share2 
+  Share2,
+  Sparkles,
+  HelpCircle,
+  ShoppingBag
 } from "lucide-react";
+
 
 interface ProductDetailsViewProps {
   product: Product;
@@ -25,6 +30,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || { name: "Default", hex: "#161616" });
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || "S");
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [isSizeRequestOpen, setIsSizeRequestOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
 
   // Acordeones abiertos
@@ -70,7 +76,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
   return (
     <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 py-8 md:py-12 bg-background">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
-        {/* Columna Izquierda: Galería Vertical de Fotos Sticky */}
+        {/* Columna Izquierda: Galería Vertical de Fotos */}
         <div className="lg:col-span-7 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {product.images.gallery.map((imgUrl, index) => (
@@ -95,12 +101,12 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
           {/* Categoría & Título */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-editorial uppercase text-charcoal-400">
-                {product.category}
+              <span className="text-[11px] font-semibold tracking-editorial uppercase text-charcoal-500">
+                ANIDA • {product.category}
               </span>
               {product.isNew && (
-                <span className="px-2 py-0.5 bg-pastel-sage/90 text-charcoal-950 text-[10px] font-semibold tracking-widest uppercase">
-                  Nuevo Atelier
+                <span className="px-2 py-0.5 bg-pastel-sage text-charcoal-950 text-[10px] font-semibold tracking-widest uppercase shadow-xs">
+                  Nuevo Lanzamiento
                 </span>
               )}
             </div>
@@ -111,7 +117,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
 
           {/* Precio */}
           <div className="flex items-center space-x-3 text-lg">
-            <span className="font-light text-charcoal-900">
+            <span className="font-medium text-charcoal-950">
               {formatPrice(product.price)} MXN
             </span>
             {product.compareAtPrice && (
@@ -146,7 +152,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
             </div>
           </div>
 
-          {/* Selector de Talla */}
+          {/* Selector de Talla con Registro de Tallas Futuras */}
           <div className="space-y-2.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-charcoal-500 uppercase tracking-wider">Selecciona Talla:</span>
@@ -155,9 +161,11 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
                 className="inline-flex items-center space-x-1 text-charcoal-700 hover:text-charcoal-950 underline text-[11px] uppercase tracking-wider"
               >
                 <Ruler className="w-3.5 h-3.5" />
-                <span>Guía de Tallas</span>
+                <span>Guía de Medidas</span>
               </button>
             </div>
+            
+            {/* Botones de tallas existentes */}
             <div className="grid grid-cols-4 gap-2">
               {product.sizes.map((size) => (
                 <button
@@ -165,7 +173,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
                   onClick={() => setSelectedSize(size)}
                   className={`py-3 text-xs font-medium tracking-wider uppercase border transition-all ${
                     selectedSize === size
-                      ? "bg-charcoal-900 border-charcoal-900 text-white shadow-xs"
+                      ? "bg-charcoal-950 border-charcoal-950 text-white shadow-xs"
                       : "bg-transparent border-charcoal-200 text-charcoal-800 hover:border-charcoal-900"
                   }`}
                 >
@@ -173,28 +181,44 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
                 </button>
               ))}
             </div>
+
+            {/* BOTÓN REGISTRAR TALLA PARA FUTURAS PRENDAS */}
+            <div className="pt-1.5">
+              <button
+                type="button"
+                onClick={() => setIsSizeRequestOpen(true)}
+                className="w-full py-2 px-3 border border-dashed border-charcoal-300 hover:border-charcoal-950 bg-charcoal-50 hover:bg-charcoal-100 text-charcoal-700 hover:text-charcoal-950 text-[11px] font-medium uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-colors group"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-charcoal-600 group-hover:text-charcoal-950" />
+                <span>¿No encuentras tu talla? Registrarla para futuras prendas</span>
+              </button>
+            </div>
           </div>
 
-          {/* Botón Añadir a la Bolsa */}
-          <div className="pt-2 space-y-3">
+          {/* Botón Añadir a la Bolsa (Grueso y Destacado) */}
+          <div className="pt-3 space-y-3">
             <button
               onClick={handleAddToCart}
-              className={`w-full py-4.5 text-xs font-semibold tracking-widest uppercase transition-all duration-300 flex items-center justify-center space-x-2 ${
+              className={`w-full py-5 sm:py-5.5 px-6 text-xs sm:text-sm font-bold tracking-[0.22em] uppercase transition-all duration-300 flex items-center justify-center space-x-2.5 shadow-lg active:scale-99 ${
                 addedSuccess
-                  ? "bg-emerald-800 text-white"
-                  : "bg-charcoal-950 hover:bg-charcoal-800 text-white shadow-md"
+                  ? "bg-emerald-800 text-white ring-2 ring-emerald-600 ring-offset-2"
+                  : "bg-charcoal-950 hover:bg-black text-white hover:shadow-xl hover:shadow-charcoal-950/20"
               }`}
             >
               {addedSuccess ? (
                 <>
-                  <Check className="w-4 h-4" />
-                  <span>Añadido al Carrito</span>
+                  <Check className="w-5 h-5 stroke-[2.5]" />
+                  <span>Añadido a la Bolsa</span>
                 </>
               ) : (
-                <span>Añadir a la Bolsa</span>
+                <>
+                  <ShoppingBag className="w-4.5 h-4.5" />
+                  <span>Añadir a la Bolsa</span>
+                </>
               )}
             </button>
           </div>
+
 
           {/* Micro Beneficios */}
           <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-charcoal-200 text-[11px] text-charcoal-600">
@@ -204,7 +228,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
             </div>
             <div className="flex items-center space-x-2">
               <RotateCcw className="w-4 h-4 text-charcoal-500 shrink-0" />
-              <span>30 Días para Devolución</span>
+              <span>Devoluciones Garantizadas</span>
             </div>
           </div>
 
@@ -216,7 +240,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
                 onClick={() => toggleAccordion("details")}
                 className="w-full flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-charcoal-900 text-left"
               >
-                <span>Descripción & Corte</span>
+                <span>Descripción & Rendimiento</span>
                 <ChevronDown
                   className={`w-4 h-4 transform transition-transform ${
                     openAccordions.details ? "rotate-180" : ""
@@ -236,7 +260,7 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
                 onClick={() => toggleAccordion("materials")}
                 className="w-full flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-charcoal-900 text-left"
               >
-                <span>Composición & Cuidados</span>
+                <span>Tecnología Textil & Cuidados</span>
                 <ChevronDown
                   className={`w-4 h-4 transform transition-transform ${
                     openAccordions.materials ? "rotate-180" : ""
@@ -245,12 +269,12 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
               </button>
               {openAccordions.materials && (
                 <p className="mt-2 text-xs text-charcoal-600 font-light leading-relaxed">
-                  {product.materialsCare || "100% Hilaturas nobles seleccionadas. Seguir instrucciones en etiqueta."}
+                  {product.materialsCare || "Fibras de alto rendimiento y secado rápido. Seguir instrucciones en etiqueta."}
                 </p>
               )}
             </div>
 
-            {/* Envíos & Pagos */}
+            {/* Envíos & Pasarelas */}
             <div className="py-3">
               <button
                 onClick={() => toggleAccordion("shipping")}
@@ -265,11 +289,12 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
               </button>
               {openAccordions.shipping && (
                 <div className="mt-2 space-y-2 text-xs text-charcoal-600 font-light leading-relaxed">
-                  <p>• Entrega estándar de 2 a 4 días hábiles a todo México.</p>
-                  <p>• Pasarelas integradas: Tarjetas (Stripe), Mercado Pago, Transferencias SPEI en tiempo real y PayPal Smart Checkout.</p>
+                  <p>• Entrega estándar de 2 a 4 días hábiles en toda la República Mexicana.</p>
+                  <p>• Métodos de pago seguros: Tarjeta de crédito / débito y Transferencia electrónica SPEI directa.</p>
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
@@ -279,6 +304,16 @@ export const ProductDetailsView: React.FC<ProductDetailsViewProps> = ({ product 
         isOpen={isSizeGuideOpen}
         onClose={() => setIsSizeGuideOpen(false)}
       />
+
+      {/* Modal Registrar Talla para Futuras Prendas */}
+      <SizeRequestModal
+        isOpen={isSizeRequestOpen}
+        onClose={() => setIsSizeRequestOpen(false)}
+        productId={product.id}
+        productTitle={product.title}
+        productImage={product.images.primary}
+      />
     </div>
   );
 };
+

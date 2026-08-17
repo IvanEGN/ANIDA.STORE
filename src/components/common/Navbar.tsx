@@ -32,27 +32,27 @@ export const Navbar: React.FC = () => {
   }, []);
 
   const navLinks = [
-    { name: "Catálogo", href: "/shop" },
-    { name: "Sastrería", href: "/shop?category=Sastrería" },
-    { name: "Vestidos", href: "/shop?category=Vestidos" },
-    { name: "Pantalones", href: "/shop?category=Pantalones" },
     { name: "Tops", href: "/shop?category=Tops" },
-    { name: "Lookbook", href: "/#editorial" },
+    { name: "Bottoms", href: "/shop?category=Bottoms" },
+    { name: "Jackets", href: "/shop?category=Jackets" },
+    { name: "Leotardos", href: "/shop?category=Leotardos" },
+    { name: "Accesorios", href: "/shop?category=Accesorios" },
+    { name: "Sales", href: "/shop?category=Sales", isHighlight: true },
   ];
 
   return (
     <>
       {/* Barra de Anuncios Superior */}
       <aside aria-label="Anuncios de la tienda" className="w-full bg-charcoal-950 text-white py-2 px-4 text-center text-[10px] sm:text-xs font-light tracking-widest uppercase transition-all duration-300">
-        <span>Envío express sin costo en órdenes mayores a $1,499 MXN &nbsp;•&nbsp; Devoluciones garantizadas</span>
+        <span>Envío sin costo en compras mayores a $1,499 MXN &nbsp;•&nbsp; Diseñado para almas libres y audaces</span>
       </aside>
 
       {/* Header Principal */}
       <header
         className={`sticky top-0 z-40 w-full transition-all duration-300 ${
           isScrolled
-            ? "bg-background/95 backdrop-blur-md border-b border-charcoal-200 py-3.5 shadow-xs"
-            : "bg-background py-5 border-b border-transparent"
+            ? "bg-background/95 backdrop-blur-md border-b border-charcoal-200 py-3 shadow-xs"
+            : "bg-background py-4.5 border-b border-charcoal-100"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 flex items-center justify-between">
@@ -66,12 +66,16 @@ export const Navbar: React.FC = () => {
               <Menu className="w-5 h-5" />
             </button>
 
-            <nav className="hidden lg:flex items-center space-x-7">
+            <nav className="hidden lg:flex items-center space-x-6 xl:space-x-7">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="text-xs tracking-widest uppercase font-normal text-charcoal-800 hover:text-charcoal-950 transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[1px] after:bg-charcoal-900 hover:after:w-full after:transition-all after:duration-300"
+                  className={`text-xs tracking-widest uppercase font-medium transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[1.5px] after:bg-charcoal-950 hover:after:w-full after:transition-all after:duration-300 ${
+                    link.isHighlight
+                      ? "text-rose-700 font-semibold hover:text-rose-900"
+                      : "text-charcoal-800 hover:text-charcoal-950"
+                  }`}
                 >
                   {link.name}
                 </Link>
@@ -79,33 +83,40 @@ export const Navbar: React.FC = () => {
             </nav>
           </div>
 
-          {/* Logo Central anida.store */}
-          <div className="text-center">
+          {/* Logo Central Vectorizado SVG */}
+          <div className="text-center py-1">
             <Link
               href="/"
-              className="font-sans text-2xl sm:text-3xl font-light tracking-[0.25em] text-charcoal-950 uppercase select-none hover:opacity-90 transition-opacity"
+              className="inline-flex items-center group select-none"
+              aria-label="ANIDA Inicio"
             >
-              ANIDA<span className="font-extralight text-charcoal-400 text-lg sm:text-xl tracking-normal">.store</span>
+              {/* Logo SVG Wordmark Vectorizado Grande */}
+              <img
+                src="/img/anida-wordmark.svg"
+                alt="ANIDA"
+                className="h-8 sm:h-11 md:h-12 w-auto object-contain transition-transform group-hover:scale-103 duration-300"
+              />
             </Link>
           </div>
 
+
           {/* Iconos de Acción Derecha */}
-          <div className="flex items-center space-x-4 sm:space-x-5">
+          <div className="flex items-center space-x-3.5 sm:space-x-5">
             {/* Buscador */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="text-charcoal-800 hover:text-charcoal-950 transition-colors"
+              className="text-charcoal-800 hover:text-charcoal-950 transition-colors p-1"
               aria-label="Buscar prendas"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Cuenta / Inicio de Sesión (Oculta el admin si no está autenticado) */}
+            {/* Cuenta / Inicio de Sesión */}
             <div className="relative">
               {user ? (
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-1.5 text-xs text-charcoal-900 font-medium hover:text-charcoal-600 uppercase tracking-wider"
+                  className="flex items-center space-x-1.5 text-xs text-charcoal-900 font-medium hover:text-charcoal-600 uppercase tracking-wider p-1"
                   title="Mi Cuenta"
                 >
                   <User className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -114,7 +125,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <Link
                   href="/login"
-                  className="text-charcoal-800 hover:text-charcoal-950 transition-colors flex items-center space-x-1"
+                  className="text-charcoal-800 hover:text-charcoal-950 transition-colors flex items-center space-x-1 p-1"
                   title="Iniciar Sesión"
                 >
                   <User className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -129,7 +140,7 @@ export const Navbar: React.FC = () => {
                     <p className="text-[10px] text-charcoal-400 truncate">{user.email}</p>
                   </div>
 
-                  {/* Acceso exclusivo al CMS solo si es el correo anida.store.mid@gmail.com */}
+                  {/* Acceso exclusivo al CMS solo si es administrador */}
                   {isAdmin && (
                     <Link
                       href="/admin"
@@ -137,7 +148,7 @@ export const Navbar: React.FC = () => {
                       className="flex items-center space-x-2 px-4 py-2 text-charcoal-900 hover:bg-charcoal-50 font-semibold text-[11px] uppercase tracking-wider"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
-                      <span>Panel CMS</span>
+                      <span>Panel CMS ANIDA</span>
                     </Link>
                   )}
 
@@ -158,12 +169,12 @@ export const Navbar: React.FC = () => {
             {/* Disparador de Carrito */}
             <button
               onClick={openCart}
-              className="relative text-charcoal-800 hover:text-charcoal-950 transition-colors flex items-center"
+              className="relative text-charcoal-800 hover:text-charcoal-950 transition-colors flex items-center p-1"
               aria-label={`Ver bolsa con ${cartCount} prendas`}
             >
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-charcoal-950 text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1.5 bg-charcoal-950 text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center animate-scaleIn">
                   {cartCount}
                 </span>
               )}
@@ -178,7 +189,7 @@ export const Navbar: React.FC = () => {
               <Search className="w-4 h-4 text-charcoal-400" />
               <input
                 type="text"
-                placeholder="BUSCAR PRENDAS, VESTIDOS, LINO, COLORES..."
+                placeholder="BUSCAR TOPS, BOTTOMS, JACKETS, LEOTARDOS..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-transparent text-xs sm:text-sm tracking-wider uppercase placeholder:text-charcoal-400 focus:outline-none"
@@ -209,9 +220,12 @@ export const Navbar: React.FC = () => {
           <div className="relative w-4/5 max-w-xs bg-background h-full p-6 flex flex-col justify-between shadow-2xl z-10">
             <div>
               <div className="flex items-center justify-between pb-6 border-b border-charcoal-200">
-                <span className="font-light tracking-[0.2em] text-lg uppercase">
-                  ANIDA<span className="text-charcoal-400 text-sm">.store</span>
-                </span>
+                <img
+                  src="/img/anida-wordmark.svg"
+                  alt="ANIDA"
+                  className="h-8 w-auto object-contain"
+                />
+
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-charcoal-800 hover:text-charcoal-950"
@@ -221,20 +235,22 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
 
-              <div className="py-8 flex flex-col space-y-5">
+              <div className="py-6 flex flex-col space-y-4">
                 <Link
                   href="/shop"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-sm tracking-widest uppercase font-medium text-charcoal-900"
+                  className="text-xs tracking-widest uppercase font-semibold text-charcoal-950 pb-2 border-b border-charcoal-100"
                 >
-                  Ver Catálogo
+                  Ver Todo el Catálogo
                 </Link>
                 {navLinks.map((link) => (
                   <Link
                     key={link.name}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-xs tracking-widest uppercase font-normal text-charcoal-700 hover:text-charcoal-950"
+                    className={`text-xs tracking-widest uppercase font-medium ${
+                      link.isHighlight ? "text-rose-700 font-semibold" : "text-charcoal-700 hover:text-charcoal-950"
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -271,11 +287,11 @@ export const Navbar: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="inline-block text-xs uppercase font-medium text-charcoal-900 tracking-wider"
                 >
-                  Iniciar Sesión / Registro
+                  Iniciar Sesión / Cuenta
                 </Link>
               )}
               <p className="text-[10px] text-charcoal-400 uppercase tracking-widest pt-2">
-                anida.store • Envíos a todo México
+                ANIDA • Envíos a todo México
               </p>
             </div>
           </div>
@@ -284,3 +300,4 @@ export const Navbar: React.FC = () => {
     </>
   );
 };
+

@@ -21,7 +21,7 @@ export interface Product {
   materialsCare?: string;
   price: number;
   compareAtPrice?: number;
-  category: string;
+  category: "Tops" | "Bottoms" | "Jackets" | "Leotardos" | "Accesorios" | "Sales" | string;
   isNew?: boolean;
   featured?: boolean;
   images: {
@@ -59,6 +59,20 @@ export interface HomeBannerData {
   mobileMediaUrl?: string;
   tagline?: string;
   isActive: boolean;
+  displayOrder?: number;
+}
+
+export interface SizeRequestRecord {
+  id: string;
+  productId: string;
+  productTitle: string;
+  requestedSize: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  notes?: string;
+  createdAt: string;
+  status: "PENDING" | "CONTACTED" | "RESOLVED";
 }
 
 export interface OrderCustomerInfo {
@@ -73,7 +87,8 @@ export interface OrderCustomerInfo {
   country: string;
 }
 
-export type PaymentMethodType = "STRIPE" | "MERCADO_PAGO" | "SPEI" | "PAYPAL";
+export type PaymentMethodType = "CARD" | "STRIPE" | "SPEI";
+
 
 export interface OrderRecord {
   id: string;
@@ -89,3 +104,4 @@ export interface OrderRecord {
   orderStatus: "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   speiClabe?: string;
 }
+

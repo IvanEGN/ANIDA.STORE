@@ -241,7 +241,7 @@ export const SlideCartDrawer: React.FC = () => {
               <Link
                 href="/checkout"
                 onClick={closeCart}
-                className="w-full flex items-center justify-center py-4 bg-charcoal-950 text-white text-xs font-semibold tracking-widest uppercase hover:bg-charcoal-800 transition-all duration-300 shadow-md group"
+                className="w-full flex items-center justify-center py-4.5 bg-charcoal-950 text-white text-xs sm:text-sm font-bold tracking-[0.2em] uppercase hover:bg-black transition-all duration-300 shadow-md group"
               >
                 <span>Proceder al Pago</span>
                 <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
@@ -253,8 +253,9 @@ export const SlideCartDrawer: React.FC = () => {
                   <ShieldCheck className="w-3.5 h-3.5 text-charcoal-600" />
                   <span>Pago Seguro Encriptado SSL</span>
                 </div>
-                <span className="tracking-widest uppercase">Stripe • Mercado Pago • SPEI • PayPal</span>
+                <span className="tracking-widest uppercase">Tarjetas de Crédito / Débito • Transferencia SPEI</span>
               </div>
+
             </div>
           )}
         </div>

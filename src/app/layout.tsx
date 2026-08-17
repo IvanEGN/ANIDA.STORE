@@ -6,12 +6,19 @@ import { CartProvider } from "@/context/CartContext";
 import { Navbar } from "@/components/common/Navbar";
 import { SlideCartDrawer } from "@/components/common/SlideCartDrawer";
 import { Footer } from "@/components/common/Footer";
+import { WhatsAppFloatingButton } from "@/components/common/WhatsAppFloatingButton";
 
 export const metadata: Metadata = {
-  title: "anida.store | Moda Minimalista & Sastrería Contemporánea",
+  title: "ANIDA | Alto Rendimiento & Estética Contemporánea",
   description:
-    "Tienda en línea de moda minimalista, cortes contemporáneos, lino orgánico y siluetas depuradas.",
+    "Ropa deportiva de alto rendimiento diseñada para almas libres, modernas y audaces. Tops, bottoms, jackets, leotardos y accesorios.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
+
 
 export default function RootLayout({
   children,
@@ -28,6 +35,7 @@ export default function RootLayout({
               <main className="flex-1 w-full">{children}</main>
               <SlideCartDrawer />
               <Footer />
+              <WhatsAppFloatingButton />
             </CartProvider>
           </StoreDataProvider>
         </AuthProvider>
@@ -35,3 +43,4 @@ export default function RootLayout({
     </html>
   );
 }
+

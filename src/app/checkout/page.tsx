@@ -300,10 +300,10 @@ export default function CheckoutPage() {
             </h2>
 
             <div className="space-y-3">
-              {/* Opción 1: Stripe (Tarjetas Internacionales/Locales) */}
+              {/* Opción 1: Tarjeta de Crédito / Débito */}
               <label
                 className={`flex items-start p-4 border cursor-pointer transition-all ${
-                  paymentMethod === "STRIPE"
+                  paymentMethod === "CARD" || paymentMethod === "STRIPE"
                     ? "border-charcoal-900 bg-charcoal-50/50 ring-1 ring-charcoal-900"
                     : "border-charcoal-200 hover:border-charcoal-400"
                 }`}
@@ -311,24 +311,24 @@ export default function CheckoutPage() {
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="STRIPE"
-                  checked={paymentMethod === "STRIPE"}
-                  onChange={() => setPaymentMethod("STRIPE")}
+                  value="CARD"
+                  checked={paymentMethod === "CARD" || paymentMethod === "STRIPE"}
+                  onChange={() => setPaymentMethod("CARD")}
                   className="mt-0.5 text-charcoal-900"
                 />
                 <div className="ml-3 flex-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-900 flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-charcoal-700" />
-                      Tarjeta de Crédito / Débito (Stripe)
+                      Tarjeta de Crédito / Débito
                     </span>
-                    <span className="text-[10px] text-charcoal-400 tracking-widest uppercase">Visa • MC • Amex</span>
+                    <span className="text-[10px] text-charcoal-500 tracking-widest uppercase font-medium">Visa • Mastercard • Amex</span>
                   </div>
                   <p className="text-[11px] text-charcoal-500 font-light mt-0.5">
-                    Procesamiento instantáneo encriptado directamente en la plataforma.
+                    Procesamiento seguro e instantáneo con encriptación bancaria de 256 bits.
                   </p>
 
-                  {paymentMethod === "STRIPE" && (
+                  {(paymentMethod === "CARD" || paymentMethod === "STRIPE") && (
                     <div className="mt-4 pt-3 border-t border-charcoal-200 grid grid-cols-2 gap-3 text-xs">
                       <div className="col-span-2 space-y-1">
                         <label className="text-[10px] uppercase tracking-wider text-charcoal-600">Número de Tarjeta</label>
@@ -368,7 +368,7 @@ export default function CheckoutPage() {
                 </div>
               </label>
 
-              {/* Opción 2: Transferencia SPEI (Mercado Pago / STP) */}
+              {/* Opción 2: Transferencia Electrónica SPEI */}
               <label
                 className={`flex items-start p-4 border cursor-pointer transition-all ${
                   paymentMethod === "SPEI"
@@ -388,76 +388,18 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-900 flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-charcoal-700" />
-                      Transferencia SPEI (CLABE en Tiempo Real)
+                      Transferencia Electrónica SPEI
                     </span>
-                    <span className="text-[10px] bg-pastel-sage px-2 py-0.5 font-semibold text-charcoal-900 uppercase">Sin Comisiones</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-semibold uppercase">Sin Comisiones</span>
                   </div>
                   <p className="text-[11px] text-charcoal-500 font-light mt-0.5">
-                    Se generará una CLABE bancaria única STP para pagar desde tu app de BBVA, Santander, Banorte, Citibanamex, etc.
-                  </p>
-                </div>
-              </label>
-
-              {/* Opción 3: Mercado Pago Checkout */}
-              <label
-                className={`flex items-start p-4 border cursor-pointer transition-all ${
-                  paymentMethod === "MERCADO_PAGO"
-                    ? "border-charcoal-900 bg-charcoal-50/50 ring-1 ring-charcoal-900"
-                    : "border-charcoal-200 hover:border-charcoal-400"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="MERCADO_PAGO"
-                  checked={paymentMethod === "MERCADO_PAGO"}
-                  onChange={() => setPaymentMethod("MERCADO_PAGO")}
-                  className="mt-0.5 text-charcoal-900"
-                />
-                <div className="ml-3 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-900 flex items-center gap-2">
-                      <Wallet className="w-4 h-4 text-charcoal-700" />
-                      Mercado Pago (Saldo & Tarjetas)
-                    </span>
-                    <span className="text-[10px] text-charcoal-400 uppercase tracking-widest">México & LATAM</span>
-                  </div>
-                  <p className="text-[11px] text-charcoal-500 font-light mt-0.5">
-                    Paga con tu cuenta de Mercado Pago o tarjetas en mensualidades.
-                  </p>
-                </div>
-              </label>
-
-              {/* Opción 4: PayPal */}
-              <label
-                className={`flex items-start p-4 border cursor-pointer transition-all ${
-                  paymentMethod === "PAYPAL"
-                    ? "border-charcoal-900 bg-charcoal-50/50 ring-1 ring-charcoal-900"
-                    : "border-charcoal-200 hover:border-charcoal-400"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="PAYPAL"
-                  checked={paymentMethod === "PAYPAL"}
-                  onChange={() => setPaymentMethod("PAYPAL")}
-                  className="mt-0.5 text-charcoal-900"
-                />
-                <div className="ml-3 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-900">
-                      PayPal Express
-                    </span>
-                    <span className="text-[10px] text-charcoal-400 uppercase tracking-widest">Smart Buttons</span>
-                  </div>
-                  <p className="text-[11px] text-charcoal-500 font-light mt-0.5">
-                    Pago rápido y protección al comprador de PayPal.
+                    Se generará una CLABE bancaria STP para transferir en tiempo real desde la app de tu banco (BBVA, Santander, Banorte, Nu, Citibanamex, etc.).
                   </p>
                 </div>
               </label>
             </div>
           </div>
+
 
           {/* Botón de Confirmación */}
           <button

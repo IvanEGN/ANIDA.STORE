@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Product } from "@/types";
 import { ProductCard } from "./ProductCard";
 import { useStoreData } from "@/context/StoreDataContext";
 import { Sparkles, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface ProductCatalogProps {
   initialCategory?: string;
@@ -19,12 +20,29 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   searchQuery = "",
 }) => {
   const { products } = useStoreData();
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
+  const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "ALL");
   const [selectedSize, setSelectedSize] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured");
 
-  const categories = ["ALL", "Novedades", "Sastrería", "Vestidos", "Pantalones", "Tops", "Faldas"];
-  const sizes = ["ALL", "XS", "S", "M", "L"];
+  // Sincronizar cuando cambia la URL / initialCategory
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
+  const categories = ["ALL", "Tops", "Bottoms", "Jackets", "Leotardos", "Accesorios", "Sales"];
+  const sizes = ["ALL", "XS", "S", "M", "L", "XL"];
+
+  const handleCategorySelect = (cat: string) => {
+    setSelectedCategory(cat);
+    if (cat === "ALL") {
+      router.push("/shop", { scroll: false });
+    } else {
+      router.push(`/shop?category=${encodeURIComponent(cat)}`, { scroll: false });
+    }
+  };
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -37,10 +55,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         if (!matchesTitle && !matchesDesc && !matchesCat) return false;
       }
 
-      // Filtro de Categoría
-      if (selectedCategory === "Novedades") {
-        if (!product.isNew) return false;
-      } else if (selectedCategory !== "ALL" && product.category !== selectedCategory) {
+      // Filtro de Categoría (insensible a mayúsculas/minúsculas)
+      if (selectedCategory.toLowerCase() === "sales") {
+        const isSalesCat = product.category.toLowerCase() === "sales";
+        const hasDiscount = Boolean(product.compareAtPrice && product.compareAtPrice > product.price);
+        if (!isSalesCat && !hasDiscount) return false;
+      } else if (
+        selectedCategory !== "ALL" &&
+        product.category.trim().toLowerCase() !== selectedCategory.trim().toLowerCase()
+      ) {
         return false;
       }
 
@@ -66,7 +89,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             Colección Activa
           </span>
           <h2 className="text-2xl sm:text-3xl font-light tracking-tight text-charcoal-950 uppercase">
-            {selectedCategory === "ALL" ? "Catálogo" : selectedCategory}
+            {selectedCategory === "ALL" ? "Catálogo Completo" : selectedCategory}
           </h2>
         </div>
 
@@ -75,11 +98,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => handleCategorySelect(cat)}
               className={`text-xs px-4 py-2 rounded-full tracking-wider uppercase transition-all duration-200 shrink-0 ${
-                selectedCategory === cat
-                  ? "bg-charcoal-900 text-white font-medium shadow-xs"
-                  : "bg-charcoal-100 text-charcoal-700 hover:bg-charcoal-200"
+                selectedCategory.toLowerCase() === cat.toLowerCase()
+                  ? "bg-charcoal-950 text-white font-medium shadow-xs"
+                  : "bg-charcoal-100 text-charcoal-700 hover:bg-charcoal-200 hover:text-charcoal-950"
               }`}
             >
               {cat === "ALL" ? "Ver Todo" : cat}
@@ -87,6 +110,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           ))}
         </div>
       </div>
+
 
       {/* Barra de Filtros Rápidos (Talla y Orden) */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8 text-xs text-charcoal-700">

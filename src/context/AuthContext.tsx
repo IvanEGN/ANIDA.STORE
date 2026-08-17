@@ -2,7 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-export const ADMIN_EMAIL = "anida.store.mid@gmail.com";
+export const ADMIN_EMAILS = [
+  "anidabyad@gmail.com",
+  "anida.store.mid@gmail.com",
+];
 
 export interface UserProfile {
   id: string;
@@ -46,11 +49,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: "Ingresa un correo electrónico válido." };
     }
 
-    const isAdministrator = cleanEmail === ADMIN_EMAIL.toLowerCase();
+    const isAdministrator = ADMIN_EMAILS.some((adm) => adm.toLowerCase() === cleanEmail);
 
     const loggedUser: UserProfile = {
       id: `usr-${Date.now()}`,
-      name: name || (isAdministrator ? "Administrador anida" : cleanEmail.split("@")[0]),
+      name: name || (isAdministrator ? "Administrador ANIDA" : cleanEmail.split("@")[0]),
       email: cleanEmail,
       role: isAdministrator ? "ADMIN" : "CUSTOMER",
       createdAt: new Date().toISOString(),
@@ -66,11 +69,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("anida_auth_user");
   };
 
+  const isAdmin = !!user && user.role === "ADMIN" && ADMIN_EMAILS.some((adm) => adm.toLowerCase() === user.email.toLowerCase());
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAdmin: user?.role === "ADMIN" && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+        isAdmin,
         login,
         logout,
         isLoading,
@@ -80,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

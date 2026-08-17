@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { X, Ruler } from "lucide-react";
+
 
 interface SizeGuideModalProps {
   isOpen: boolean;

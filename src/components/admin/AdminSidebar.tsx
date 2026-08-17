@@ -9,7 +9,7 @@ import {
   Image as ImageIcon, 
   ShoppingBag, 
   ArrowLeft,
-  Sliders 
+  Sparkles 
 } from "lucide-react";
 
 export const AdminSidebar: React.FC = () => {
@@ -18,8 +18,9 @@ export const AdminSidebar: React.FC = () => {
   const links = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Inventario & Productos", href: "/admin/inventory", icon: Package },
-    { name: "Banners & CMS", href: "/admin/banners", icon: ImageIcon },
+    { name: "Carrusel & Banners", href: "/admin/banners", icon: ImageIcon },
     { name: "Gestión de Pedidos", href: "/admin/orders", icon: ShoppingBag },
+    { name: "Solicitudes de Tallas", href: "/admin/requests", icon: Sparkles },
   ];
 
   return (
@@ -29,9 +30,13 @@ export const AdminSidebar: React.FC = () => {
           <span className="text-[10px] font-semibold tracking-widest text-pastel-sand uppercase">
             Panel de Control
           </span>
-          <h2 className="text-lg font-light tracking-[0.2em] uppercase mt-0.5">
-            ANIDA <span className="text-charcoal-400 text-xs">CMS</span>
-          </h2>
+          <div className="mt-2 bg-white p-1.5 rounded-xs inline-block">
+            <img
+              src="/img/anida-wordmark.svg"
+              alt="ANIDA"
+              className="h-5 w-auto object-contain"
+            />
+          </div>
         </div>
 
         <nav className="space-y-1.5">
@@ -68,3 +73,4 @@ export const AdminSidebar: React.FC = () => {
     </aside>
   );
 };
+
