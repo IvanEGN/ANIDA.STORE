@@ -4,22 +4,32 @@ import { prisma } from "@/lib/prisma";
 const DEFAULT_ANNOUNCEMENT =
   "Envío sin costo en compras mayores a $1,499 MXN • Diseñado para almas libres y audaces";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export async function GET() {
   try {
     const setting = await prisma.storeSetting.findUnique({
       where: { key: "announcement_bar" },
     });
 
-    return NextResponse.json({
-      success: true,
-      announcementBar: setting?.value || DEFAULT_ANNOUNCEMENT,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        announcementBar: setting?.value || DEFAULT_ANNOUNCEMENT,
+      },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   } catch (error) {
     console.error("[API Settings GET] Error:", error);
-    return NextResponse.json({
-      success: true,
-      announcementBar: DEFAULT_ANNOUNCEMENT,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        announcementBar: DEFAULT_ANNOUNCEMENT,
+      },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   }
 }
 

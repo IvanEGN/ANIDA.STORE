@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { HomeBannerData } from "@/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export async function GET() {
   try {
     const dbBanners = await prisma.homeBanner.findMany({
@@ -23,10 +27,16 @@ export async function GET() {
       displayOrder: b.displayOrder,
     }));
 
-    return NextResponse.json({ success: true, count: formatted.length, data: formatted });
+    return NextResponse.json(
+      { success: true, count: formatted.length, data: formatted },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   } catch (error) {
     console.error("[API Banners GET] Error:", error);
-    return NextResponse.json({ success: true, count: 0, data: [] });
+    return NextResponse.json(
+      { success: true, count: 0, data: [] },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   }
 }
 

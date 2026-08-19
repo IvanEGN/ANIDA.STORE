@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Product } from "@/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -64,10 +68,16 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, count: formatted.length, data: formatted });
+    return NextResponse.json(
+      { success: true, count: formatted.length, data: formatted },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   } catch (error) {
     console.error("[API Products GET] Error:", error);
-    return NextResponse.json({ success: true, count: 0, data: [] });
+    return NextResponse.json(
+      { success: true, count: 0, data: [] },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   }
 }
 

@@ -290,11 +290,17 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setProducts([]);
     setOrders([]);
     setSizeRequests([]);
-    setBanners(INITIAL_BANNERS);
+    setBanners([]);
     await setStorageItem(PRODUCTS_KEY, []);
-    await setStorageItem(BANNERS_KEY, INITIAL_BANNERS);
+    await setStorageItem(BANNERS_KEY, []);
     await setStorageItem(ORDERS_KEY, []);
     await setStorageItem(REQUESTS_KEY, []);
+
+    try {
+      await fetch("/api/store/reset", { method: "POST" });
+    } catch (e) {
+      console.error("[StoreDataContext] Error reseteando base de datos:", e);
+    }
   };
 
   return (
