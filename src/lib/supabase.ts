@@ -1,12 +1,39 @@
 import { createClient } from "@supabase/supabase-js";
 
-export const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://wuymahrkeryprdlbmhft.supabase.co";
+// Función para sanitizar y garantizar una URL HTTP/HTTPS válida
+function getSanitizedSupabaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const defaultUrl = "https://wuymahrkeryprdlbmhft.supabase.co";
 
-export const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "sb_publishable_QVTfYkXaxkfoKWfQhy_XlQ_pkZuxA2N";
+  if (!envUrl) return defaultUrl;
+
+  // Si por error se colocó la DATABASE_URL (postgresql://) en NEXT_PUBLIC_SUPABASE_URL
+  if (envUrl.startsWith("postgresql://") || envUrl.startsWith("postgres://")) {
+    const match = envUrl.match(/db\.([a-z0-9]+)\.supabase\.co/);
+    if (match && match[1]) {
+      return `https://${match[1]}.supabase.co`;
+    }
+    return defaultUrl;
+  }
+
+  if (envUrl.startsWith("http://") || envUrl.startsWith("https://")) {
+    return envUrl;
+  }
+
+  return defaultUrl;
+}
+
+function getSanitizedSupabaseKey(): string {
+  const envKey = (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )?.trim();
+
+  return envKey || "sb_publishable_QVTfYkXaxkfoKWfQhy_XlQ_pkZuxA2N";
+}
+
+export const SUPABASE_URL = getSanitizedSupabaseUrl();
+export const SUPABASE_ANON_KEY = getSanitizedSupabaseKey();
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -26,14 +53,13 @@ export async function uploadImageToSupabase(
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${fileName}`;
 
-    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
+    const { error } = await supabase.storage.from(bucket).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
     });
 
     if (error) {
       console.warn("Supabase Storage fallback direct fetch:", error.message);
-      // Fallback a fetch directo si el bucket no tiene RLS permisiva
       const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${filePath}`, {
         method: "POST",
         headers: {
