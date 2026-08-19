@@ -33,7 +33,32 @@ export const HeroSection: React.FC = () => {
     return () => clearInterval(interval);
   }, [totalSlides, isPaused, nextSlide]);
 
-  if (slideList.length === 0) return null;
+  if (slideList.length === 0) {
+    return (
+      <section className="relative w-full py-20 md:py-28 bg-charcoal-950 text-white select-none">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 text-center space-y-5">
+          <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-pastel-sand uppercase">
+            ANIDA // ACTIVEWEAR & HIGH PERFORMANCE
+          </span>
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-light tracking-tight uppercase leading-tight max-w-3xl mx-auto">
+            VIVE SIN LÍMITES EN CADA MOVIMIENTO
+          </h1>
+          <p className="text-xs sm:text-sm font-light text-white/70 max-w-lg mx-auto leading-relaxed">
+            Fusionamos tecnología textil con siluetas de vanguardia para entrenamiento y alta intensidad.
+          </p>
+          <div className="pt-3">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white text-charcoal-950 text-xs font-semibold tracking-widest uppercase hover:bg-pastel-sand transition-all duration-300 shadow-md"
+            >
+              <span>Explorar Catálogo</span>
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const currentBanner = slideList[currentIndex] || slideList[0];
 

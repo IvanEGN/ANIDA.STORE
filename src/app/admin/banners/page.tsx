@@ -77,12 +77,12 @@ export default function AdminBannersPage() {
     const newSlide: HomeBannerData = {
       id: `banner-${Date.now()}`,
       tagline: "ANIDA // NUEVA COLECCIÓN",
-      title: "NUEVO LANZAMIENTO EXCLUSIVO",
-      subtitle: "Prendas de compresión anatómica y cortes de vanguardia.",
-      ctaText: "EXPLORAR AHORA",
+      title: "TÍTULO DEL BANNER",
+      subtitle: "Descripción de la prenda o lanzamiento de temporada.",
+      ctaText: "VER COLECCIÓN",
       ctaLink: "/shop",
       mediaType: "IMAGE",
-      mediaUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=2000&q=85",
+      mediaUrl: "",
       mobileMediaUrl: "",
       isActive: true,
       displayOrder: banners.length + 1,
@@ -92,15 +92,25 @@ export default function AdminBannersPage() {
   };
 
   const handleDeleteBanner = async (id: string) => {
-    if (banners.length <= 1) {
-      alert("Debes mantener al menos 1 slide en el carrusel de inicio.");
-      return;
-    }
     if (confirm("¿Estás seguro de eliminar este slide del carrusel?")) {
       await deleteBanner(id);
       const remaining = banners.filter((b) => b.id !== id);
       if (remaining.length > 0) {
         handleSelectBanner(remaining[0]);
+      } else {
+        setSelectedBannerId("");
+        setFormState({
+          id: `banner-${Date.now()}`,
+          tagline: "ANIDA // NUEVA COLECCIÓN",
+          title: "",
+          subtitle: "",
+          ctaText: "VER COLECCIÓN",
+          ctaLink: "/shop",
+          mediaType: "IMAGE",
+          mediaUrl: "",
+          mobileMediaUrl: "",
+          isActive: true,
+        });
       }
     }
   };
@@ -247,7 +257,19 @@ export default function AdminBannersPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
+        {banners.length === 0 ? (
+          <div className="py-8 text-center border border-dashed border-charcoal-200 p-6 space-y-3">
+            <p className="text-xs text-charcoal-500 font-light">No tienes banners en el carrusel de inicio.</p>
+            <button
+              type="button"
+              onClick={handleAddNewBanner}
+              className="px-4 py-2 bg-charcoal-950 text-white text-xs uppercase tracking-wider font-semibold hover:bg-charcoal-800"
+            >
+              + Agregar Primer Slide
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
           {banners.map((b, idx) => {
             const isSelected = b.id === formState.id;
             return (
@@ -302,7 +324,8 @@ export default function AdminBannersPage() {
             );
           })}
         </div>
-      </div>
+      )}
+    </div>
 
       {/* SECCIÓN 3: EDITOR DEL SLIDE & PREVISUALIZACIÓN */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

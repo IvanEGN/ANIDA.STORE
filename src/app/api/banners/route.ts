@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { HomeBannerData } from "@/types";
-import { INITIAL_BANNERS } from "@/data/initialData";
 
 export async function GET() {
   try {
@@ -9,10 +8,6 @@ export async function GET() {
       where: { isActive: true },
       orderBy: { displayOrder: "asc" },
     });
-
-    if (dbBanners.length === 0) {
-      return NextResponse.json({ success: true, count: INITIAL_BANNERS.length, data: INITIAL_BANNERS });
-    }
 
     const formatted: HomeBannerData[] = dbBanners.map((b) => ({
       id: b.id,
@@ -31,7 +26,7 @@ export async function GET() {
     return NextResponse.json({ success: true, count: formatted.length, data: formatted });
   } catch (error) {
     console.error("[API Banners GET] Error:", error);
-    return NextResponse.json({ success: true, count: INITIAL_BANNERS.length, data: INITIAL_BANNERS });
+    return NextResponse.json({ success: true, count: 0, data: [] });
   }
 }
 
@@ -39,9 +34,9 @@ export async function POST(request: Request) {
   try {
     const body: HomeBannerData = await request.json();
 
-    if (!body.title || !body.mediaUrl) {
+    if (!body.title) {
       return NextResponse.json(
-        { success: false, error: "Título e imagen de escritorio requeridos" },
+        { success: false, error: "Título requerido" },
         { status: 400 }
       );
     }
@@ -62,7 +57,7 @@ export async function POST(request: Request) {
           ctaText: body.ctaText || "Ver Colección",
           ctaLink: body.ctaLink || "/shop",
           mediaType: body.mediaType || "IMAGE",
-          mediaUrl: body.mediaUrl,
+          mediaUrl: body.mediaUrl || "",
           mobileMediaUrl: body.mobileMediaUrl || null,
           isActive: body.isActive ?? true,
           displayOrder: body.displayOrder ?? 0,
@@ -78,7 +73,7 @@ export async function POST(request: Request) {
           ctaText: body.ctaText || "Ver Colección",
           ctaLink: body.ctaLink || "/shop",
           mediaType: body.mediaType || "IMAGE",
-          mediaUrl: body.mediaUrl,
+          mediaUrl: body.mediaUrl || "",
           mobileMediaUrl: body.mobileMediaUrl || null,
           isActive: body.isActive ?? true,
           displayOrder: body.displayOrder ?? 0,
