@@ -55,14 +55,19 @@ export const HeroSection: React.FC = () => {
             }`}
           >
             {banner.mediaUrl ? (
-              <img
-                src={banner.mediaUrl}
-                alt={banner.title || "ANIDA portada"}
-                onLoad={() => setIsImageLoaded((prev) => ({ ...prev, [banner.id]: true }))}
-                className={`w-full h-full object-cover object-center transition-transform duration-10000 ease-out scale-105 ${
-                  isCurrent ? "scale-100" : "scale-105"
-                }`}
-              />
+              <picture className="w-full h-full">
+                {banner.mobileMediaUrl && (
+                  <source media="(max-width: 768px)" srcSet={banner.mobileMediaUrl} />
+                )}
+                <img
+                  src={banner.mediaUrl}
+                  alt={banner.title || "ANIDA portada"}
+                  onLoad={() => setIsImageLoaded((prev) => ({ ...prev, [banner.id]: true }))}
+                  className={`w-full h-full object-cover object-center transition-transform duration-10000 ease-out scale-105 ${
+                    isCurrent ? "scale-100" : "scale-105"
+                  }`}
+                />
+              </picture>
             ) : (
               <div className="w-full h-full bg-gradient-to-tr from-charcoal-950 via-charcoal-900 to-charcoal-800" />
             )}

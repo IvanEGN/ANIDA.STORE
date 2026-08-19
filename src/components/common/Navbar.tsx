@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useStoreData } from "@/context/StoreDataContext";
 import { 
   ShoppingBag, 
   Menu, 
@@ -17,6 +18,7 @@ import {
 export const Navbar: React.FC = () => {
   const { cartCount, openCart } = useCart();
   const { user, isAdmin, logout } = useAuth();
+  const { announcementText } = useStoreData();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -42,10 +44,12 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      {/* Barra de Anuncios Superior */}
-      <aside aria-label="Anuncios de la tienda" className="w-full bg-charcoal-950 text-white py-2 px-4 text-center text-[10px] sm:text-xs font-light tracking-widest uppercase transition-all duration-300">
-        <span>Envío sin costo en compras mayores a $1,499 MXN &nbsp;•&nbsp; Diseñado para almas libres y audaces</span>
-      </aside>
+      {/* Barra de Anuncios Superior Dinámica */}
+      {announcementText && (
+        <aside aria-label="Anuncios de la tienda" className="w-full bg-charcoal-950 text-white py-2 px-4 text-center text-[10px] sm:text-xs font-light tracking-widest uppercase transition-all duration-300">
+          <span>{announcementText}</span>
+        </aside>
+      )}
 
       {/* Header Principal */}
       <header

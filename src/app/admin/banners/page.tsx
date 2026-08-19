@@ -13,18 +13,41 @@ import {
   Image as ImageIcon, 
   Layers, 
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
+  Smartphone,
+  Monitor,
+  Megaphone,
   ToggleLeft,
   ToggleRight
 } from "lucide-react";
 
 export default function AdminBannersPage() {
-  const { banners, addBanner, updateBanner, deleteBanner } = useStoreData();
+  const {
+    banners,
+    addBanner,
+    updateBanner,
+    deleteBanner,
+    announcementText,
+    updateAnnouncementText,
+  } = useStoreData();
+
   const [selectedBannerId, setSelectedBannerId] = useState<string>(banners[0]?.id || "");
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [compressionInfo, setCompressionInfo] = useState<string | null>(null);
+  const [isOptimizingDesktop, setIsOptimizingDesktop] = useState(false);
+  const [isOptimizingMobile, setIsOptimizingMobile] = useState(false);
+  const [compressionInfoDesktop, setCompressionInfoDesktop] = useState<string | null>(null);
+  const [compressionInfoMobile, setCompressionInfoMobile] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+
+  // Barra de anuncios estado
+  const [formAnnouncement, setFormAnnouncement] = useState<string>(announcementText);
+  const [announcementSaved, setAnnouncementSaved] = useState(false);
+
+  // Sincronizar texto de anuncio cuando cargue
+  React.useEffect(() => {
+    if (announcementText) {
+      setFormAnnouncement(announcementText);
+    }
+  }, [announcementText]);
 
   // Slide actual en edición
   const currentBanner = banners.find((b) => b.id === selectedBannerId) || banners[0] || {
@@ -36,6 +59,7 @@ export default function AdminBannersPage() {
     ctaLink: "/shop",
     mediaType: "IMAGE" as const,
     mediaUrl: "",
+    mobileMediaUrl: "",
     isActive: true,
   };
 
@@ -45,10 +69,11 @@ export default function AdminBannersPage() {
   const handleSelectBanner = (banner: HomeBannerData) => {
     setSelectedBannerId(banner.id);
     setFormState(banner);
-    setCompressionInfo(null);
+    setCompressionInfoDesktop(null);
+    setCompressionInfoMobile(null);
   };
 
-  const handleAddNewBanner = () => {
+  const handleAddNewBanner = async () => {
     const newSlide: HomeBannerData = {
       id: `banner-${Date.now()}`,
       tagline: "ANIDA // NUEVA COLECCIÓN",
@@ -58,10 +83,11 @@ export default function AdminBannersPage() {
       ctaLink: "/shop",
       mediaType: "IMAGE",
       mediaUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=2000&q=85",
+      mobileMediaUrl: "",
       isActive: true,
       displayOrder: banners.length + 1,
     };
-    addBanner(newSlide);
+    await addBanner(newSlide);
     handleSelectBanner(newSlide);
   };
 
@@ -79,45 +105,76 @@ export default function AdminBannersPage() {
     }
   };
 
-  const handleBannerImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Imagen para Escritorio (Desktop)
+  const handleDesktopImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsOptimizing(true);
+    setIsOptimizingDesktop(true);
     try {
       const result = await convertImageToWebP(file, 2000, 0.88);
       const updated = { ...formState, mediaUrl: result.dataUrl };
       setFormState(updated);
       await updateBanner(updated);
       const savings = Math.round((1 - result.optimizedSize / result.originalSize) * 100);
-      setCompressionInfo(
-        `✓ Imagen convertida a WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
+      setCompressionInfoDesktop(
+        `✓ Foto escritorio en WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
       );
     } catch (err) {
       console.error(err);
-      alert("Error al procesar la imagen del banner.");
+      alert("Error al procesar la imagen de escritorio.");
     } finally {
-      setIsOptimizing(false);
+      setIsOptimizingDesktop(false);
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  // Imagen para Celular (Mobile - Vertical)
+  const handleMobileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsOptimizingMobile(true);
+    try {
+      const result = await convertImageToWebP(file, 1080, 0.85);
+      const updated = { ...formState, mobileMediaUrl: result.dataUrl };
+      setFormState(updated);
+      await updateBanner(updated);
+      const savings = Math.round((1 - result.optimizedSize / result.originalSize) * 100);
+      setCompressionInfoMobile(
+        `✓ Foto móvil en WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Error al procesar la imagen para móvil.");
+    } finally {
+      setIsOptimizingMobile(false);
+    }
+  };
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateBanner(formState);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await updateAnnouncementText(formAnnouncement);
+    setAnnouncementSaved(true);
+    setTimeout(() => setAnnouncementSaved(false), 2500);
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-charcoal-200">
         <div>
           <span className="text-[11px] font-semibold tracking-widest text-charcoal-500 uppercase">
-            Gestión de Contenido (CMS)
+            Gestión de Contenido & Banners
           </span>
           <h1 className="text-2xl font-light tracking-tight text-charcoal-950 uppercase">
-            Carrusel de Inicio (Hero Banners)
+            Banners de Portada & Anuncios
           </h1>
         </div>
 
@@ -131,7 +188,54 @@ export default function AdminBannersPage() {
         </button>
       </div>
 
-      {/* Lista de Slides Disponibles como Pestañas / Miniaturas */}
+      {/* SECCIÓN 1: EDITOR DE LA BARRA DE ANUNCIOS SUPERIOR */}
+      <div className="bg-white p-6 border border-charcoal-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-charcoal-100">
+          <div className="flex items-center space-x-2">
+            <Megaphone className="w-4 h-4 text-charcoal-900" />
+            <h2 className="text-xs font-semibold tracking-widest uppercase text-charcoal-900">
+              Barra Superior de Envíos / Promociones
+            </h2>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-charcoal-400 font-medium">
+            Se actualiza en vivo en todos los dispositivos
+          </span>
+        </div>
+
+        <form onSubmit={handleSaveAnnouncement} className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase tracking-wider text-charcoal-600 font-medium">
+              Texto de la cinta negra superior:
+            </label>
+            <input
+              type="text"
+              required
+              value={formAnnouncement}
+              onChange={(e) => setFormAnnouncement(e.target.value)}
+              placeholder="ENVÍO SIN COSTO EN COMPRAS MAYORES A $1,499 MXN • DISEÑADO PARA ALMAS LIBRES Y AUDACES"
+              className="w-full px-3.5 py-2.5 border border-charcoal-200 bg-white text-xs tracking-wider focus:border-charcoal-900 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            {announcementSaved ? (
+              <span className="inline-flex items-center space-x-1.5 text-emerald-700 text-xs font-medium">
+                <Check className="w-4 h-4" />
+                <span>¡Texto de barra guardado y visible en todos los dispositivos!</span>
+              </span>
+            ) : <span />}
+
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-charcoal-950 text-white text-xs font-semibold uppercase tracking-widest hover:bg-charcoal-800 transition-colors"
+            >
+              Guardar Barra de Anuncios
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* SECCIÓN 2: LISTA DE SLIDES DISPONIBLES */}
       <div className="bg-white p-5 border border-charcoal-200 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-900 flex items-center gap-1.5">
@@ -139,7 +243,7 @@ export default function AdminBannersPage() {
             Diapositivas Activas ({banners.length})
           </span>
           <span className="text-[11px] text-charcoal-500">
-            Haz clic en un slide para editar su texto e imagen
+            Haz clic en un slide para editar sus fotos y textos
           </span>
         </div>
 
@@ -200,10 +304,10 @@ export default function AdminBannersPage() {
         </div>
       </div>
 
-      {/* Editor del Slide Seleccionado & Previsualización */}
+      {/* SECCIÓN 3: EDITOR DEL SLIDE & PREVISUALIZACIÓN */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Formulario de Edición */}
-        <form onSubmit={handleSave} className="lg:col-span-7 bg-white p-6 sm:p-8 border border-charcoal-200 shadow-xs space-y-5 text-xs">
+        <form onSubmit={handleSaveBanner} className="lg:col-span-7 bg-white p-6 sm:p-8 border border-charcoal-200 shadow-xs space-y-5 text-xs">
           <div className="flex items-center justify-between pb-3 border-b border-charcoal-100">
             <div className="flex items-center space-x-2">
               <ImageIcon className="w-4 h-4 text-charcoal-700" />
@@ -215,22 +319,22 @@ export default function AdminBannersPage() {
             {/* Toggle Activo / Pausado */}
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const updated = { ...formState, isActive: !formState.isActive };
                 setFormState(updated);
-                updateBanner(updated);
+                await updateBanner(updated);
               }}
               className="flex items-center space-x-1.5 text-xs font-medium uppercase tracking-wider text-charcoal-700"
             >
               {formState.isActive ? (
                 <>
                   <ToggleRight className="w-5 h-5 text-emerald-700" />
-                  <span className="text-emerald-800">Visible en Carrusel</span>
+                  <span className="text-emerald-800">Visible en Tienda</span>
                 </>
               ) : (
                 <>
                   <ToggleLeft className="w-5 h-5 text-charcoal-400" />
-                  <span className="text-charcoal-500">Slide Pausado</span>
+                  <span className="text-charcoal-500">Slide Oculto</span>
                 </>
               )}
             </button>
@@ -309,85 +413,151 @@ export default function AdminBannersPage() {
             </div>
           </div>
 
-          {/* Subida de Imagen con Conversión WebP */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] uppercase tracking-wider text-charcoal-600 font-medium">
-              Fotografía de Portada (Conversión Automática a WebP)
-            </label>
-            <label className="flex flex-col items-center justify-center border-2 border-dashed border-charcoal-200 hover:border-charcoal-900 p-6 cursor-pointer bg-charcoal-50 transition-colors">
-              <Upload className="w-6 h-6 text-charcoal-400 mb-2" />
-              <span className="text-xs text-charcoal-800 font-medium">
-                {formState.mediaUrl ? "Seleccionar otra imagen para reemplazar este slide" : "Seleccionar imagen local"}
-              </span>
-              <span className="text-[10px] text-charcoal-400 mt-0.5">JPG, PNG o WEBP (se optimizará a alta definición)</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBannerImageChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          {compressionInfo && (
-            <div className="text-[11px] text-emerald-700 bg-emerald-50 p-2.5 border border-emerald-200">
-              {compressionInfo}
+          {/* FOTOGRAFÍAS: DUAL UPLOAD (ESCRITORIO & MÓVIL) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* Foto 1: Escritorio */}
+            <div className="space-y-2">
+              <label className="text-[11px] uppercase tracking-wider text-charcoal-700 font-semibold flex items-center gap-1.5">
+                <Monitor className="w-3.5 h-3.5" />
+                <span>Foto para Escritorio (16:9 / Horizontal) *</span>
+              </label>
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-charcoal-200 hover:border-charcoal-900 p-5 cursor-pointer bg-charcoal-50 transition-colors h-36">
+                <Upload className="w-5 h-5 text-charcoal-400 mb-1" />
+                <span className="text-[11px] text-charcoal-800 font-medium text-center">
+                  {formState.mediaUrl ? "Reemplazar foto de escritorio" : "Subir foto horizontal"}
+                </span>
+                <span className="text-[9px] text-charcoal-400 mt-0.5">Se optimiza en WebP</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleDesktopImageChange}
+                  className="hidden"
+                />
+              </label>
+              {compressionInfoDesktop && (
+                <div className="text-[10px] text-emerald-700 bg-emerald-50 p-2 border border-emerald-200">
+                  {compressionInfoDesktop}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Foto 2: Celular / Móvil */}
+            <div className="space-y-2">
+              <label className="text-[11px] uppercase tracking-wider text-charcoal-700 font-semibold flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Foto para Móvil (9:16 / Vertical)</span>
+              </label>
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-charcoal-200 hover:border-charcoal-900 p-5 cursor-pointer bg-charcoal-50 transition-colors h-36">
+                <Upload className="w-5 h-5 text-charcoal-400 mb-1" />
+                <span className="text-[11px] text-charcoal-800 font-medium text-center">
+                  {formState.mobileMediaUrl ? "Reemplazar foto para móvil" : "Subir foto vertical para celular"}
+                </span>
+                <span className="text-[9px] text-charcoal-400 mt-0.5">Ajuste perfecto en pantallas móviles</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMobileImageChange}
+                  className="hidden"
+                />
+              </label>
+              {compressionInfoMobile && (
+                <div className="text-[10px] text-emerald-700 bg-emerald-50 p-2 border border-emerald-200">
+                  {compressionInfoMobile}
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="pt-4 flex items-center justify-between border-t border-charcoal-200">
             {savedSuccess ? (
               <span className="inline-flex items-center space-x-1.5 text-emerald-700 text-xs font-medium">
                 <Check className="w-4 h-4" />
-                <span>¡Slide guardado y reflejado en el carrusel de inicio!</span>
+                <span>¡Slide guardado en base de datos MySQL!</span>
               </span>
             ) : <span />}
 
             <button
               type="submit"
-              disabled={isOptimizing}
+              disabled={isOptimizingDesktop || isOptimizingMobile}
               className="px-6 py-3 bg-charcoal-950 text-white uppercase tracking-widest font-semibold hover:bg-charcoal-800 transition-colors shadow-xs disabled:opacity-50"
             >
-              {isOptimizing ? "Procesando WebP..." : "Guardar Cambios del Slide"}
+              {isOptimizingDesktop || isOptimizingMobile ? "Procesando WebP..." : "Guardar Cambios del Slide"}
             </button>
           </div>
         </form>
 
-        {/* Vista Previa en Vivo */}
+        {/* Vista Previa Interactiva (Switch Desktop / Móvil) */}
         <div className="lg:col-span-5 space-y-3">
-          <div className="flex items-center space-x-2 text-xs uppercase tracking-wider text-charcoal-500">
-            <Eye className="w-4 h-4" />
-            <span>Vista Previa del Slide Seleccionado</span>
+          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-charcoal-500">
+            <div className="flex items-center space-x-1.5">
+              <Eye className="w-4 h-4" />
+              <span>Vista Previa en Vivo</span>
+            </div>
+
+            {/* Switch Desktop / Celular */}
+            <div className="flex border border-charcoal-300 overflow-hidden text-[10px]">
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("desktop")}
+                className={`px-3 py-1 flex items-center gap-1 ${
+                  previewDevice === "desktop" ? "bg-charcoal-950 text-white" : "bg-white text-charcoal-700"
+                }`}
+              >
+                <Monitor className="w-3 h-3" />
+                <span>Escritorio</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("mobile")}
+                className={`px-3 py-1 flex items-center gap-1 ${
+                  previewDevice === "mobile" ? "bg-charcoal-950 text-white" : "bg-white text-charcoal-700"
+                }`}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>Celular</span>
+              </button>
+            </div>
           </div>
 
-          <div className="relative aspect-[3/4] bg-charcoal-900 overflow-hidden shadow-lg border border-charcoal-300">
-            {formState.mediaUrl ? (
-              <img
-                src={formState.mediaUrl}
-                alt="Vista previa"
-                className="w-full h-full object-cover object-top opacity-90"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-6 text-center space-y-2">
-                <ImageIcon className="w-10 h-10 stroke-1" />
-                <p className="text-xs uppercase tracking-wider">Sube una imagen para previsualizar</p>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-            <div className="absolute bottom-6 left-6 right-6 text-white space-y-2">
-              <span className="text-[9px] uppercase tracking-widest text-pastel-sand font-medium">
-                {formState.tagline}
-              </span>
-              <h3 className="text-base sm:text-lg uppercase font-light leading-snug">
-                {formState.title}
-              </h3>
-              <p className="text-[11px] text-white/80 line-clamp-2">
-                {formState.subtitle}
-              </p>
-              <div className="pt-2">
-                <span className="inline-block px-4 py-2 bg-white text-charcoal-950 text-[10px] uppercase font-semibold tracking-widest">
-                  {formState.ctaText}
+          <div
+            className={`mx-auto bg-charcoal-900 overflow-hidden shadow-lg border border-charcoal-300 transition-all ${
+              previewDevice === "desktop" ? "w-full aspect-[16/10]" : "w-[260px] aspect-[9/16] rounded-2xl border-4 border-charcoal-950"
+            }`}
+          >
+            <div className="relative w-full h-full">
+              {(previewDevice === "mobile" && formState.mobileMediaUrl ? formState.mobileMediaUrl : formState.mediaUrl) ? (
+                <img
+                  src={
+                    previewDevice === "mobile" && formState.mobileMediaUrl
+                      ? formState.mobileMediaUrl
+                      : formState.mediaUrl
+                  }
+                  alt="Vista previa"
+                  className="w-full h-full object-cover object-center opacity-90"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-6 text-center space-y-2">
+                  <ImageIcon className="w-8 h-8 stroke-1" />
+                  <p className="text-[10px] uppercase tracking-wider">Sube imagen para previsualizar</p>
+                </div>
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5 text-white space-y-1.5">
+                <span className="text-[8px] uppercase tracking-widest text-pastel-sand font-medium">
+                  {formState.tagline}
                 </span>
+                <h3 className="text-sm sm:text-base uppercase font-light leading-snug">
+                  {formState.title}
+                </h3>
+                <p className="text-[10px] text-white/80 line-clamp-2">
+                  {formState.subtitle}
+                </p>
+                <div className="pt-1.5">
+                  <span className="inline-block px-3 py-1.5 bg-white text-charcoal-950 text-[9px] uppercase font-semibold tracking-widest">
+                    {formState.ctaText}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -396,4 +566,3 @@ export default function AdminBannersPage() {
     </div>
   );
 }
-

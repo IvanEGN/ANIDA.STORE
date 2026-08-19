@@ -5,16 +5,21 @@ import { Product, HomeBannerData, OrderRecord, SizeRequestRecord } from "@/types
 import { INITIAL_BANNERS, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SIZE_REQUESTS } from "@/data/initialData";
 import { getStorageItem, setStorageItem, clearAllStoreData } from "@/lib/storage";
 
-const PRODUCTS_KEY = "anida_products_v4";
-const BANNERS_KEY = "anida_banners_v4";
-const ORDERS_KEY = "anida_orders_v4";
-const REQUESTS_KEY = "anida_size_requests_v4";
+const PRODUCTS_KEY = "anida_products_v5";
+const BANNERS_KEY = "anida_banners_v5";
+const ORDERS_KEY = "anida_orders_v5";
+const REQUESTS_KEY = "anida_size_requests_v5";
+const ANNOUNCEMENT_KEY = "anida_announcement_v5";
+
+const DEFAULT_ANNOUNCEMENT =
+  "Envío sin costo en compras mayores a $1,499 MXN • Diseñado para almas libres y audaces";
 
 interface StoreDataContextType {
   products: Product[];
   banners: HomeBannerData[];
   orders: OrderRecord[];
   sizeRequests: SizeRequestRecord[];
+  announcementText: string;
   isLoaded: boolean;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
@@ -23,12 +28,14 @@ interface StoreDataContextType {
   updateBanner: (banner: HomeBannerData) => Promise<void>;
   deleteBanner: (id: string) => Promise<void>;
   setBannersList: (banners: HomeBannerData[]) => Promise<void>;
+  updateAnnouncementText: (text: string) => Promise<void>;
   addOrder: (order: OrderRecord) => Promise<void>;
   updateOrderStatus: (orderId: string, status: any) => Promise<void>;
   addSizeRequest: (request: Omit<SizeRequestRecord, "id" | "createdAt" | "status">) => SizeRequestRecord;
   updateSizeRequestStatus: (requestId: string, status: "PENDING" | "CONTACTED" | "RESOLVED") => Promise<void>;
   deleteSizeRequest: (id: string) => Promise<void>;
   resetToEmptyStore: () => Promise<void>;
+  refreshStoreData: () => Promise<void>;
 }
 
 const StoreDataContext = createContext<StoreDataContextType | undefined>(undefined);
@@ -38,37 +45,85 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [banners, setBanners] = useState<HomeBannerData[]>(INITIAL_BANNERS);
   const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
   const [sizeRequests, setSizeRequests] = useState<SizeRequestRecord[]>(INITIAL_SIZE_REQUESTS);
+  const [announcementText, setAnnouncementText] = useState<string>(DEFAULT_ANNOUNCEMENT);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  // Cargar datos persistidos desde IndexedDB (con soporte para imágenes de alta resolución)
-  useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      try {
-        const [savedProds, savedBanners, savedOrders, savedRequests] = await Promise.all([
-          getStorageItem<Product[]>(PRODUCTS_KEY, INITIAL_PRODUCTS),
-          getStorageItem<HomeBannerData[]>(BANNERS_KEY, INITIAL_BANNERS),
-          getStorageItem<OrderRecord[]>(ORDERS_KEY, INITIAL_ORDERS),
-          getStorageItem<SizeRequestRecord[]>(REQUESTS_KEY, INITIAL_SIZE_REQUESTS),
-        ]);
+  // Cargar datos sincronizados desde MySQL con respaldo local en IndexedDB
+  const refreshStoreData = async () => {
+    try {
+      // 1. Cargar desde base de datos MySQL (vía API centralizada)
+      const [resProds, resBanners, resSettings] = await Promise.all([
+        fetch("/api/products", { cache: "no-store" }).catch(() => null),
+        fetch("/api/banners", { cache: "no-store" }).catch(() => null),
+        fetch("/api/settings", { cache: "no-store" }).catch(() => null),
+      ]);
 
-        if (isMounted) {
-          if (Array.isArray(savedProds)) setProducts(savedProds);
-          if (Array.isArray(savedBanners) && savedBanners.length > 0) setBanners(savedBanners);
-          if (Array.isArray(savedOrders)) setOrders(savedOrders);
-          if (Array.isArray(savedRequests)) setSizeRequests(savedRequests);
-          setIsLoaded(true);
+      let apiProducts: Product[] | null = null;
+      let apiBanners: HomeBannerData[] | null = null;
+      let apiAnnouncement: string | null = null;
+
+      if (resProds && resProds.ok) {
+        const json = await resProds.json();
+        if (json.success && Array.isArray(json.data)) {
+          apiProducts = json.data;
         }
-      } catch (e) {
-        console.error("[StoreDataContext] Error al cargar los datos persistidos:", e);
-        if (isMounted) setIsLoaded(true);
       }
-    }
 
-    loadData();
-    return () => {
-      isMounted = false;
-    };
+      if (resBanners && resBanners.ok) {
+        const json = await resBanners.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          apiBanners = json.data;
+        }
+      }
+
+      if (resSettings && resSettings.ok) {
+        const json = await resSettings.json();
+        if (json.success && json.announcementBar) {
+          apiAnnouncement = json.announcementBar;
+        }
+      }
+
+      // Si la API devolvió datos de MySQL, aplicarlos y respaldar en IndexedDB
+      if (apiProducts !== null) {
+        setProducts(apiProducts);
+        setStorageItem(PRODUCTS_KEY, apiProducts);
+      } else {
+        const localProds = await getStorageItem<Product[]>(PRODUCTS_KEY, INITIAL_PRODUCTS);
+        setProducts(localProds);
+      }
+
+      if (apiBanners !== null) {
+        setBanners(apiBanners);
+        setStorageItem(BANNERS_KEY, apiBanners);
+      } else {
+        const localBanners = await getStorageItem<HomeBannerData[]>(BANNERS_KEY, INITIAL_BANNERS);
+        setBanners(localBanners);
+      }
+
+      if (apiAnnouncement !== null) {
+        setAnnouncementText(apiAnnouncement);
+        setStorageItem(ANNOUNCEMENT_KEY, apiAnnouncement);
+      } else {
+        const localAnnouncement = await getStorageItem<string>(ANNOUNCEMENT_KEY, DEFAULT_ANNOUNCEMENT);
+        setAnnouncementText(localAnnouncement);
+      }
+
+      const [savedOrders, savedRequests] = await Promise.all([
+        getStorageItem<OrderRecord[]>(ORDERS_KEY, INITIAL_ORDERS),
+        getStorageItem<SizeRequestRecord[]>(REQUESTS_KEY, INITIAL_SIZE_REQUESTS),
+      ]);
+
+      if (Array.isArray(savedOrders)) setOrders(savedOrders);
+      if (Array.isArray(savedRequests)) setSizeRequests(savedRequests);
+    } catch (e) {
+      console.warn("[StoreDataContext] Error al sincronizar con MySQL:", e);
+    } finally {
+      setIsLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    refreshStoreData();
   }, []);
 
   // Products
@@ -76,18 +131,44 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updated = [prod, ...products];
     setProducts(updated);
     await setStorageItem(PRODUCTS_KEY, updated);
+
+    try {
+      await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prod),
+      });
+    } catch (e) {
+      console.error("[StoreDataContext] Error guardando producto en MySQL:", e);
+    }
   };
 
   const updateProduct = async (prod: Product) => {
     const updated = products.map((p) => (p.id === prod.id ? prod : p));
     setProducts(updated);
     await setStorageItem(PRODUCTS_KEY, updated);
+
+    try {
+      await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prod),
+      });
+    } catch (e) {
+      console.error("[StoreDataContext] Error actualizando producto en MySQL:", e);
+    }
   };
 
   const deleteProduct = async (id: string) => {
     const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
     await setStorageItem(PRODUCTS_KEY, updated);
+
+    try {
+      await fetch(`/api/products?id=${id}`, { method: "DELETE" });
+    } catch (e) {
+      console.error("[StoreDataContext] Error eliminando producto en MySQL:", e);
+    }
   };
 
   // Banners
@@ -95,23 +176,73 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updated = [...banners, b];
     setBanners(updated);
     await setStorageItem(BANNERS_KEY, updated);
+
+    try {
+      await fetch("/api/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(b),
+      });
+    } catch (e) {
+      console.error("[StoreDataContext] Error guardando banner en MySQL:", e);
+    }
   };
 
   const updateBanner = async (b: HomeBannerData) => {
     const updated = banners.map((item) => (item.id === b.id ? b : item));
     setBanners(updated);
     await setStorageItem(BANNERS_KEY, updated);
+
+    try {
+      await fetch("/api/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(b),
+      });
+    } catch (e) {
+      console.error("[StoreDataContext] Error actualizando banner en MySQL:", e);
+    }
   };
 
   const deleteBanner = async (id: string) => {
     const updated = banners.filter((item) => item.id !== id);
     setBanners(updated);
     await setStorageItem(BANNERS_KEY, updated);
+
+    try {
+      await fetch(`/api/banners?id=${id}`, { method: "DELETE" });
+    } catch (e) {
+      console.error("[StoreDataContext] Error eliminando banner en MySQL:", e);
+    }
   };
 
   const setBannersList = async (list: HomeBannerData[]) => {
     setBanners(list);
     await setStorageItem(BANNERS_KEY, list);
+    // Sincronizar todos en paralelo
+    list.forEach((b) => {
+      fetch("/api/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(b),
+      }).catch(console.error);
+    });
+  };
+
+  // Barra de Anuncios Superior
+  const updateAnnouncementText = async (text: string) => {
+    setAnnouncementText(text);
+    await setStorageItem(ANNOUNCEMENT_KEY, text);
+
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ announcementBar: text }),
+      });
+    } catch (e) {
+      console.error("[StoreDataContext] Error guardando anuncio en MySQL:", e);
+    }
   };
 
   // Orders
@@ -154,7 +285,6 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     await setStorageItem(REQUESTS_KEY, updated);
   };
 
-  // Reiniciar todo a tienda limpia / vacía
   const resetToEmptyStore = async () => {
     await clearAllStoreData();
     setProducts([]);
@@ -174,6 +304,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         banners,
         orders,
         sizeRequests,
+        announcementText,
         isLoaded,
         addProduct,
         updateProduct,
@@ -182,12 +313,14 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateBanner,
         deleteBanner,
         setBannersList,
+        updateAnnouncementText,
         addOrder,
         updateOrderStatus,
         addSizeRequest,
         updateSizeRequestStatus,
         deleteSizeRequest,
         resetToEmptyStore,
+        refreshStoreData,
       }}
     >
       {children}
