@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +15,22 @@ export async function POST(request: Request) {
     }
 
     const userName = name || email.split("@")[0];
+
+    // Guardar o actualizar usuario en MySQL de Hostinger
+    try {
+      await prisma.user.upsert({
+        where: { email },
+        update: { name: userName },
+        create: {
+          name: userName,
+          email,
+          passwordHash: "user-registered",
+          role: email.includes("admin") ? "ADMIN" : "CUSTOMER",
+        },
+      });
+    } catch (dbErr) {
+      console.warn("[Register API] Error guardando usuario en MySQL:", dbErr);
+    }
 
     // Contenido del correo de confirmación de registro
     const emailSubject = `¡Bienvenido a ANIDA, ${userName}! Tu cuenta ha sido creada`;

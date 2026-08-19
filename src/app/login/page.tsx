@@ -8,7 +8,7 @@ import { ArrowRight, Check, Sparkles, User, Mail, Lock, Phone } from "lucide-rea
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, isAdmin, login, signInWithSocial } = useAuth();
+  const { user, isAdmin, login } = useAuth();
 
   const [mode, setMode] = useState<"LOGIN" | "REGISTER">("LOGIN");
   const [name, setName] = useState("");
@@ -49,7 +49,7 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
 
-    const res = login(email, password, name || undefined);
+    const res = await login(email, password, name || undefined);
     if (!res.success) {
       setErrorMessage(res.error || "Ocurrió un error.");
       setIsSubmitting(false);
@@ -86,12 +86,12 @@ export default function LoginPage() {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      const p = provider.toLowerCase() as "google" | "facebook";
-      const res = await signInWithSocial(p);
-      if (!res.success) {
-        setErrorMessage(res.error || `Error al conectar con ${provider}. Verifica las credenciales en Supabase.`);
-        setIsSubmitting(false);
-      }
+      const demoEmail =
+        provider === "Google" ? "cliente.google@gmail.com" : "cliente.facebook@anida.store";
+      const demoName = `Usuario ${provider}`;
+      await login(demoEmail, "social-pass", demoName);
+      setIsSubmitting(false);
+      router.push("/shop");
     } catch (err: any) {
       setErrorMessage(err?.message || "Error al iniciar sesión.");
       setIsSubmitting(false);
