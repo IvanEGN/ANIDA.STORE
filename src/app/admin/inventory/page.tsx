@@ -94,7 +94,7 @@ export default function AdminInventoryPage() {
     }
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formPrimaryImg) {
       alert("Por favor selecciona al menos la foto principal de la prenda.");
@@ -135,17 +135,17 @@ export default function AdminInventoryPage() {
     };
 
     if (editingProduct) {
-      updateProduct(productPayload);
+      await updateProduct(productPayload);
     } else {
-      addProduct(productPayload);
+      await addProduct(productPayload);
     }
 
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("¿Deseas eliminar permanentemente esta prenda?")) {
-      deleteProduct(id);
+      await deleteProduct(id);
     }
   };
 

@@ -7,11 +7,18 @@ import { useStoreData } from "@/context/StoreDataContext";
 import { DollarSign, ShoppingBag, Package, TrendingUp, ArrowUpRight, Plus, Image as ImageIcon } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const { products, orders } = useStoreData();
+  const { products, orders, resetToEmptyStore } = useStoreData();
 
   const totalRevenue = orders.reduce((sum, ord) => sum + ord.total, 0);
   const activeOrdersCount = orders.length;
   const totalProducts = products.length;
+
+  const handleResetCatalog = async () => {
+    if (confirm("¿Deseas vaciar todos los datos de muestra y dejar la tienda totalmente limpia para tus productos reales?")) {
+      await resetToEmptyStore();
+      alert("¡La tienda ha sido limpiada con éxito! Ahora puedes agregar tus prendas reales.");
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -26,7 +33,14 @@ export default function AdminDashboardPage() {
           </h1>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center flex-wrap gap-2">
+          <button
+            onClick={handleResetCatalog}
+            className="px-3 py-2 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 text-xs tracking-wider uppercase font-medium transition-colors"
+            title="Borrar datos de prueba y dejar la tienda vacía"
+          >
+            Vaciar Tienda
+          </button>
           <Link
             href="/admin/inventory"
             className="px-4 py-2 bg-charcoal-950 text-white text-xs tracking-wider uppercase font-semibold hover:bg-charcoal-800 transition-colors"

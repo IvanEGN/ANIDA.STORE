@@ -8,7 +8,7 @@ import { ArrowRight, Check, Sparkles, User, Mail, Lock, Phone } from "lucide-rea
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { user, isAdmin, login, signInWithSocial } = useAuth();
 
   const [mode, setMode] = useState<"LOGIN" | "REGISTER">("LOGIN");
   const [name, setName] = useState("");
@@ -20,7 +20,18 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Si ya está autenticado, redirigir
+  React.useEffect(() => {
+    if (user) {
+      if (isAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/shop");
+      }
+    }
+  }, [user, isAdmin, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -45,33 +56,46 @@ export default function LoginPage() {
       return;
     }
 
-    setIsSubmitting(false);
     const cleanEmail = email.trim().toLowerCase();
     const isAdminUser = ADMIN_EMAILS.some((adm) => adm.toLowerCase() === cleanEmail);
 
     if (mode === "REGISTER") {
-      setSuccessMessage("¡Cuenta creada exitosamente! Redirigiendo...");
+      try {
+        await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email: cleanEmail, phone }),
+        });
+      } catch (err) {
+        console.warn("Error enviando confirmación de correo:", err);
+      }
+      setSuccessMessage("¡Cuenta creada exitosamente! Se ha enviado un correo de confirmación a tu bandeja de entrada.");
     }
 
     setTimeout(() => {
+      setIsSubmitting(false);
       if (isAdminUser) {
         router.push("/admin");
       } else {
         router.push("/shop");
       }
-    }, 600);
+    }, 1200);
   };
 
-  const handleSocialLogin = (provider: "Google" | "Facebook" | "Apple") => {
+  const handleSocialLogin = async (provider: "Google" | "Facebook") => {
     setIsSubmitting(true);
-    // Simulación de inicio de sesión rápido social
-    setTimeout(() => {
-      const demoEmail = provider === "Google" ? "cliente.google@gmail.com" : provider === "Facebook" ? "cliente.facebook@anida.store" : "cliente.apple@icloud.com";
-      const demoName = `Usuario ${provider}`;
-      login(demoEmail, "social-pass", demoName);
+    setErrorMessage(null);
+    try {
+      const p = provider.toLowerCase() as "google" | "facebook";
+      const res = await signInWithSocial(p);
+      if (!res.success) {
+        setErrorMessage(res.error || `Error al conectar con ${provider}. Verifica las credenciales en Supabase.`);
+        setIsSubmitting(false);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Error al iniciar sesión.");
       setIsSubmitting(false);
-      router.push("/shop");
-    }, 800);
+    }
   };
 
   return (

@@ -3,24 +3,32 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Product, HomeBannerData, OrderRecord, SizeRequestRecord } from "@/types";
 import { INITIAL_BANNERS, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SIZE_REQUESTS } from "@/data/initialData";
+import { getStorageItem, setStorageItem, clearAllStoreData } from "@/lib/storage";
+
+const PRODUCTS_KEY = "anida_products_v4";
+const BANNERS_KEY = "anida_banners_v4";
+const ORDERS_KEY = "anida_orders_v4";
+const REQUESTS_KEY = "anida_size_requests_v4";
 
 interface StoreDataContextType {
   products: Product[];
   banners: HomeBannerData[];
   orders: OrderRecord[];
   sizeRequests: SizeRequestRecord[];
-  addProduct: (product: Product) => void;
-  updateProduct: (product: Product) => void;
-  deleteProduct: (id: string) => void;
-  addBanner: (banner: HomeBannerData) => void;
-  updateBanner: (banner: HomeBannerData) => void;
-  deleteBanner: (id: string) => void;
-  setBannersList: (banners: HomeBannerData[]) => void;
-  addOrder: (order: OrderRecord) => void;
-  updateOrderStatus: (orderId: string, status: any) => void;
+  isLoaded: boolean;
+  addProduct: (product: Product) => Promise<void>;
+  updateProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addBanner: (banner: HomeBannerData) => Promise<void>;
+  updateBanner: (banner: HomeBannerData) => Promise<void>;
+  deleteBanner: (id: string) => Promise<void>;
+  setBannersList: (banners: HomeBannerData[]) => Promise<void>;
+  addOrder: (order: OrderRecord) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: any) => Promise<void>;
   addSizeRequest: (request: Omit<SizeRequestRecord, "id" | "createdAt" | "status">) => SizeRequestRecord;
-  updateSizeRequestStatus: (requestId: string, status: "PENDING" | "CONTACTED" | "RESOLVED") => void;
-  deleteSizeRequest: (id: string) => void;
+  updateSizeRequestStatus: (requestId: string, status: "PENDING" | "CONTACTED" | "RESOLVED") => Promise<void>;
+  deleteSizeRequest: (id: string) => Promise<void>;
+  resetToEmptyStore: () => Promise<void>;
 }
 
 const StoreDataContext = createContext<StoreDataContextType | undefined>(undefined);
@@ -30,104 +38,96 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [banners, setBanners] = useState<HomeBannerData[]>(INITIAL_BANNERS);
   const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
   const [sizeRequests, setSizeRequests] = useState<SizeRequestRecord[]>(INITIAL_SIZE_REQUESTS);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  // Cargar datos persistidos
+  // Cargar datos persistidos desde IndexedDB (con soporte para imágenes de alta resolución)
   useEffect(() => {
-    try {
-      const savedProds = localStorage.getItem("anida_products_v3");
-      if (savedProds) {
-        const parsed = JSON.parse(savedProds);
-        if (Array.isArray(parsed) && parsed.length > 0) setProducts(parsed);
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const [savedProds, savedBanners, savedOrders, savedRequests] = await Promise.all([
+          getStorageItem<Product[]>(PRODUCTS_KEY, INITIAL_PRODUCTS),
+          getStorageItem<HomeBannerData[]>(BANNERS_KEY, INITIAL_BANNERS),
+          getStorageItem<OrderRecord[]>(ORDERS_KEY, INITIAL_ORDERS),
+          getStorageItem<SizeRequestRecord[]>(REQUESTS_KEY, INITIAL_SIZE_REQUESTS),
+        ]);
+
+        if (isMounted) {
+          if (Array.isArray(savedProds)) setProducts(savedProds);
+          if (Array.isArray(savedBanners) && savedBanners.length > 0) setBanners(savedBanners);
+          if (Array.isArray(savedOrders)) setOrders(savedOrders);
+          if (Array.isArray(savedRequests)) setSizeRequests(savedRequests);
+          setIsLoaded(true);
+        }
+      } catch (e) {
+        console.error("[StoreDataContext] Error al cargar los datos persistidos:", e);
+        if (isMounted) setIsLoaded(true);
       }
-
-      const savedBanners = localStorage.getItem("anida_banners_v3");
-      if (savedBanners) {
-        const parsed = JSON.parse(savedBanners);
-        if (Array.isArray(parsed) && parsed.length > 0) setBanners(parsed);
-      }
-
-      const savedOrders = localStorage.getItem("anida_orders_v3");
-      if (savedOrders) setOrders(JSON.parse(savedOrders));
-
-      const savedRequests = localStorage.getItem("anida_size_requests_v3");
-      if (savedRequests) setSizeRequests(JSON.parse(savedRequests));
-    } catch (e) {
-      console.error("Error loading store data", e);
     }
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const addProduct = (prod: Product) => {
-    setProducts((prev) => {
-      const updated = [prod, ...prev];
-      localStorage.setItem("anida_products_v3", JSON.stringify(updated));
-      return updated;
-    });
+  // Products
+  const addProduct = async (prod: Product) => {
+    const updated = [prod, ...products];
+    setProducts(updated);
+    await setStorageItem(PRODUCTS_KEY, updated);
   };
 
-  const updateProduct = (prod: Product) => {
-    setProducts((prev) => {
-      const updated = prev.map((p) => (p.id === prod.id ? prod : p));
-      localStorage.setItem("anida_products_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const updateProduct = async (prod: Product) => {
+    const updated = products.map((p) => (p.id === prod.id ? prod : p));
+    setProducts(updated);
+    await setStorageItem(PRODUCTS_KEY, updated);
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => {
-      const updated = prev.filter((p) => p.id !== id);
-      localStorage.setItem("anida_products_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const deleteProduct = async (id: string) => {
+    const updated = products.filter((p) => p.id !== id);
+    setProducts(updated);
+    await setStorageItem(PRODUCTS_KEY, updated);
   };
 
-  // Carousel Banners Multi-Slide
-  const addBanner = (b: HomeBannerData) => {
-    setBanners((prev) => {
-      const updated = [...prev, b];
-      localStorage.setItem("anida_banners_v3", JSON.stringify(updated));
-      return updated;
-    });
+  // Banners
+  const addBanner = async (b: HomeBannerData) => {
+    const updated = [...banners, b];
+    setBanners(updated);
+    await setStorageItem(BANNERS_KEY, updated);
   };
 
-  const updateBanner = (b: HomeBannerData) => {
-    setBanners((prev) => {
-      const updated = prev.map((item) => (item.id === b.id ? b : item));
-      localStorage.setItem("anida_banners_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const updateBanner = async (b: HomeBannerData) => {
+    const updated = banners.map((item) => (item.id === b.id ? b : item));
+    setBanners(updated);
+    await setStorageItem(BANNERS_KEY, updated);
   };
 
-  const deleteBanner = (id: string) => {
-    setBanners((prev) => {
-      const updated = prev.filter((item) => item.id !== id);
-      localStorage.setItem("anida_banners_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const deleteBanner = async (id: string) => {
+    const updated = banners.filter((item) => item.id !== id);
+    setBanners(updated);
+    await setStorageItem(BANNERS_KEY, updated);
   };
 
-  const setBannersList = (list: HomeBannerData[]) => {
+  const setBannersList = async (list: HomeBannerData[]) => {
     setBanners(list);
-    localStorage.setItem("anida_banners_v3", JSON.stringify(list));
+    await setStorageItem(BANNERS_KEY, list);
   };
 
   // Orders
-  const addOrder = (order: OrderRecord) => {
-    setOrders((prev) => {
-      const updated = [order, ...prev];
-      localStorage.setItem("anida_orders_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const addOrder = async (order: OrderRecord) => {
+    const updated = [order, ...orders];
+    setOrders(updated);
+    await setStorageItem(ORDERS_KEY, updated);
   };
 
-  const updateOrderStatus = (orderId: string, status: any) => {
-    setOrders((prev) => {
-      const updated = prev.map((o) => (o.id === orderId ? { ...o, orderStatus: status } : o));
-      localStorage.setItem("anida_orders_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const updateOrderStatus = async (orderId: string, status: any) => {
+    const updated = orders.map((o) => (o.id === orderId ? { ...o, orderStatus: status } : o));
+    setOrders(updated);
+    await setStorageItem(ORDERS_KEY, updated);
   };
 
-  // Size Requests (Waitlist de tallas para futuras prendas)
+  // Size Requests
   const addSizeRequest = (data: Omit<SizeRequestRecord, "id" | "createdAt" | "status">) => {
     const newRecord: SizeRequestRecord = {
       ...data,
@@ -136,29 +136,35 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: "PENDING",
     };
 
-    setSizeRequests((prev) => {
-      const updated = [newRecord, ...prev];
-      localStorage.setItem("anida_size_requests_v3", JSON.stringify(updated));
-      return updated;
-    });
-
+    const updated = [newRecord, ...sizeRequests];
+    setSizeRequests(updated);
+    setStorageItem(REQUESTS_KEY, updated);
     return newRecord;
   };
 
-  const updateSizeRequestStatus = (requestId: string, status: "PENDING" | "CONTACTED" | "RESOLVED") => {
-    setSizeRequests((prev) => {
-      const updated = prev.map((r) => (r.id === requestId ? { ...r, status } : r));
-      localStorage.setItem("anida_size_requests_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const updateSizeRequestStatus = async (requestId: string, status: "PENDING" | "CONTACTED" | "RESOLVED") => {
+    const updated = sizeRequests.map((r) => (r.id === requestId ? { ...r, status } : r));
+    setSizeRequests(updated);
+    await setStorageItem(REQUESTS_KEY, updated);
   };
 
-  const deleteSizeRequest = (id: string) => {
-    setSizeRequests((prev) => {
-      const updated = prev.filter((r) => r.id !== id);
-      localStorage.setItem("anida_size_requests_v3", JSON.stringify(updated));
-      return updated;
-    });
+  const deleteSizeRequest = async (id: string) => {
+    const updated = sizeRequests.filter((r) => r.id !== id);
+    setSizeRequests(updated);
+    await setStorageItem(REQUESTS_KEY, updated);
+  };
+
+  // Reiniciar todo a tienda limpia / vacía
+  const resetToEmptyStore = async () => {
+    await clearAllStoreData();
+    setProducts([]);
+    setOrders([]);
+    setSizeRequests([]);
+    setBanners(INITIAL_BANNERS);
+    await setStorageItem(PRODUCTS_KEY, []);
+    await setStorageItem(BANNERS_KEY, INITIAL_BANNERS);
+    await setStorageItem(ORDERS_KEY, []);
+    await setStorageItem(REQUESTS_KEY, []);
   };
 
   return (
@@ -168,6 +174,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         banners,
         orders,
         sizeRequests,
+        isLoaded,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -180,6 +187,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addSizeRequest,
         updateSizeRequestStatus,
         deleteSizeRequest,
+        resetToEmptyStore,
       }}
     >
       {children}
@@ -194,4 +202,3 @@ export const useStoreData = () => {
   }
   return context;
 };
-

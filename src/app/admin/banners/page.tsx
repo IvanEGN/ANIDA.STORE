@@ -65,13 +65,13 @@ export default function AdminBannersPage() {
     handleSelectBanner(newSlide);
   };
 
-  const handleDeleteBanner = (id: string) => {
+  const handleDeleteBanner = async (id: string) => {
     if (banners.length <= 1) {
       alert("Debes mantener al menos 1 slide en el carrusel de inicio.");
       return;
     }
     if (confirm("¿Estás seguro de eliminar este slide del carrusel?")) {
-      deleteBanner(id);
+      await deleteBanner(id);
       const remaining = banners.filter((b) => b.id !== id);
       if (remaining.length > 0) {
         handleSelectBanner(remaining[0]);
@@ -88,7 +88,7 @@ export default function AdminBannersPage() {
       const result = await convertImageToWebP(file, 2000, 0.88);
       const updated = { ...formState, mediaUrl: result.dataUrl };
       setFormState(updated);
-      updateBanner(updated);
+      await updateBanner(updated);
       const savings = Math.round((1 - result.optimizedSize / result.originalSize) * 100);
       setCompressionInfo(
         `✓ Imagen convertida a WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
@@ -101,9 +101,9 @@ export default function AdminBannersPage() {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateBanner(formState);
+    await updateBanner(formState);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
