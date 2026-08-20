@@ -72,10 +72,10 @@ export async function GET(request: Request) {
       { success: true, count: formatted.length, data: formatted },
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API Products GET] Error:", error);
     return NextResponse.json(
-      { success: true, count: 0, data: [] },
+      { success: false, error: error?.message || "Error al obtener productos", count: 0, data: [] },
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
     );
   }
@@ -92,15 +92,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const slug =
+    const baseSlug =
       body.slug ||
       body.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
+    const productId = body.id || `prod-${Date.now()}`;
+
+    // Validar slug único
+    let finalSlug = baseSlug;
+    const duplicateSlug = await prisma.product.findFirst({
+      where: { slug: finalSlug, NOT: { id: productId } },
+    });
+    if (duplicateSlug) {
+      finalSlug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
+    }
+
     const existing = await prisma.product.findUnique({
-      where: { id: body.id },
+      where: { id: productId },
     });
 
     let savedProduct;
@@ -108,10 +119,10 @@ export async function POST(request: Request) {
     if (existing) {
       // Actualizar producto existente
       savedProduct = await prisma.product.update({
-        where: { id: body.id },
+        where: { id: productId },
         data: {
           title: body.title,
-          slug,
+          slug: finalSlug,
           category: body.category,
           basePrice: body.price,
           compareAtPrice: body.compareAtPrice || null,
@@ -125,14 +136,14 @@ export async function POST(request: Request) {
         },
       });
 
-      // Sincronizar variantes
+      // Sincronizar variantes con SKUs únicos
       if (body.variants && body.variants.length > 0) {
-        await prisma.productVariant.deleteMany({ where: { productId: body.id } });
+        await prisma.productVariant.deleteMany({ where: { productId } });
         await prisma.productVariant.createMany({
-          data: body.variants.map((v) => ({
-            id: v.id || `v-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-            productId: body.id,
-            sku: v.sku || `${slug}-${v.size}`,
+          data: body.variants.map((v, idx) => ({
+            id: v.id || `v-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+            productId,
+            sku: `${finalSlug.slice(0, 6).toUpperCase()}-${v.size}-${Date.now().toString().slice(-4)}-${idx}`,
             size: v.size,
             colorName: v.colorName || "Standard",
             colorHex: v.colorHex || "#161616",
@@ -145,9 +156,9 @@ export async function POST(request: Request) {
       // Crear nuevo producto
       savedProduct = await prisma.product.create({
         data: {
-          id: body.id || `prod-${Date.now()}`,
+          id: productId,
           title: body.title,
-          slug,
+          slug: finalSlug,
           category: body.category || "Tops",
           basePrice: body.price,
           compareAtPrice: body.compareAtPrice || null,
@@ -159,9 +170,9 @@ export async function POST(request: Request) {
           rawColorsJson: body.colors as any,
           rawSizesJson: body.sizes as any,
           variants: {
-            create: (body.variants || []).map((v) => ({
-              id: v.id || `v-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-              sku: v.sku || `${slug}-${v.size}`,
+            create: (body.variants || []).map((v, idx) => ({
+              id: v.id || `v-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+              sku: `${finalSlug.slice(0, 6).toUpperCase()}-${v.size}-${Date.now().toString().slice(-4)}-${idx}`,
               size: v.size,
               colorName: v.colorName || "Standard",
               colorHex: v.colorHex || "#161616",
@@ -174,10 +185,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, data: savedProduct });
-  } catch (error) {
-    console.error("[API Products POST] Error:", error);
+  } catch (error: any) {
+    console.error("[API Products POST] Error detallado:", error);
     return NextResponse.json(
-      { success: false, error: "Error al guardar la prenda en la base de datos." },
+      { success: false, error: error?.message || "Error al guardar la prenda en MySQL." },
       { status: 500 }
     );
   }
@@ -194,10 +205,10 @@ export async function DELETE(request: Request) {
 
     await prisma.product.delete({ where: { id } });
     return NextResponse.json({ success: true, message: "Producto eliminado de la base de datos" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API Products DELETE] Error:", error);
     return NextResponse.json(
-      { success: false, error: "Error al eliminar producto" },
+      { success: false, error: error?.message || "Error al eliminar producto" },
       { status: 500 }
     );
   }
