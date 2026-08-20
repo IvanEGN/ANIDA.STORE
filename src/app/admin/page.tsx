@@ -1,23 +1,48 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import { useStoreData } from "@/context/StoreDataContext";
-import { DollarSign, ShoppingBag, Package, TrendingUp, ArrowUpRight, Plus, Image as ImageIcon } from "lucide-react";
+import {
+  DollarSign,
+  ShoppingBag,
+  Package,
+  ArrowUpRight,
+  RefreshCw,
+  Database,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const { products, orders, resetToEmptyStore } = useStoreData();
+  const {
+    products,
+    banners,
+    orders,
+    resetToEmptyStore,
+    syncLocalToRemoteMySQL,
+    refreshStoreData,
+    isSyncing,
+  } = useStoreData();
+
+  const [syncStatusMessage, setSyncStatusMessage] = useState<string | null>(null);
 
   const totalRevenue = orders.reduce((sum, ord) => sum + ord.total, 0);
   const activeOrdersCount = orders.length;
   const totalProducts = products.length;
 
   const handleResetCatalog = async () => {
-    if (confirm("¿Deseas vaciar todos los datos de muestra y dejar la tienda totalmente limpia para tus productos reales?")) {
+    if (confirm("¿Deseas vaciar todos los datos y dejar la tienda totalmente limpia para tus productos reales?")) {
       await resetToEmptyStore();
       alert("¡La tienda ha sido limpiada con éxito! Ahora puedes agregar tus prendas reales.");
     }
+  };
+
+  const handleManualSync = async () => {
+    setSyncStatusMessage("Sincronizando con base de datos MySQL...");
+    const res = await syncLocalToRemoteMySQL();
+    setSyncStatusMessage(res.message);
+    setTimeout(() => setSyncStatusMessage(null), 4000);
   };
 
   return (
@@ -34,6 +59,17 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="inline-flex items-center px-3.5 py-2 border border-charcoal-300 text-charcoal-800 bg-white hover:bg-charcoal-50 text-xs tracking-wider uppercase font-medium transition-colors shadow-xs"
+            title="Subir prendas y banners a la base de datos de Hostinger"
+          >
+            <Database className={`w-3.5 h-3.5 mr-1.5 ${isSyncing ? "animate-spin text-emerald-600" : "text-charcoal-700"}`} />
+            <span>{isSyncing ? "Sincronizando..." : "Sincronizar a MySQL"}</span>
+          </button>
+
           <button
             onClick={handleResetCatalog}
             className="px-3 py-2 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 text-xs tracking-wider uppercase font-medium transition-colors"
@@ -55,6 +91,13 @@ export default function AdminDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {syncStatusMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center space-x-2 animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{syncStatusMessage}</span>
+        </div>
+      )}
 
       {/* Tarjetas de Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -82,7 +125,7 @@ export default function AdminDashboardPage() {
             <Package className="w-4 h-4 text-charcoal-400" />
           </div>
           <p className="text-2xl font-light text-charcoal-950">{totalProducts} estilos</p>
-          <p className="text-[11px] text-emerald-700">Imágenes en WebP</p>
+          <p className="text-[11px] text-emerald-700">MySQL Hostinger</p>
         </div>
 
         <div className="bg-white p-5 border border-charcoal-200 shadow-xs space-y-2">
@@ -149,7 +192,7 @@ export default function AdminDashboardPage() {
         {/* Prendas */}
         <div className="lg:col-span-4 bg-white p-6 border border-charcoal-200 shadow-xs space-y-4">
           <h2 className="text-xs font-semibold tracking-widest uppercase text-charcoal-900 pb-2 border-b border-charcoal-100">
-            Inventario Activo
+            Inventario en Base de Datos ({products.length})
           </h2>
 
           {products.length === 0 ? (
@@ -161,7 +204,7 @@ export default function AdminDashboardPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {products.slice(0, 3).map((prod) => (
+              {products.slice(0, 4).map((prod) => (
                 <div key={prod.id} className="flex space-x-3 items-center">
                   <div className="w-12 h-16 bg-charcoal-100 shrink-0 overflow-hidden">
                     <img src={prod.images.primary} alt={prod.title} className="w-full h-full object-cover object-top" />

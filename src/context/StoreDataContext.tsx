@@ -21,6 +21,7 @@ interface StoreDataContextType {
   sizeRequests: SizeRequestRecord[];
   announcementText: string;
   isLoaded: boolean;
+  isSyncing: boolean;
   addProduct: (product: Product) => Promise<{ success: boolean; error?: string }>;
   updateProduct: (product: Product) => Promise<{ success: boolean; error?: string }>;
   deleteProduct: (id: string) => Promise<{ success: boolean; error?: string }>;
@@ -36,6 +37,7 @@ interface StoreDataContextType {
   deleteSizeRequest: (id: string) => Promise<void>;
   resetToEmptyStore: () => Promise<void>;
   refreshStoreData: () => Promise<void>;
+  syncLocalToRemoteMySQL: () => Promise<{ success: boolean; message: string }>;
 }
 
 const StoreDataContext = createContext<StoreDataContextType | undefined>(undefined);
@@ -47,6 +49,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [sizeRequests, setSizeRequests] = useState<SizeRequestRecord[]>(INITIAL_SIZE_REQUESTS);
   const [announcementText, setAnnouncementText] = useState<string>(DEFAULT_ANNOUNCEMENT);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Cargar datos directamente desde MySQL en Hostinger
   const refreshStoreData = async () => {
@@ -57,9 +60,12 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         fetch("/api/settings", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }).catch(() => null),
       ]);
 
+      let dbProductsFound = false;
+
       if (resProds && resProds.ok) {
         const json = await resProds.json();
-        if (json.success && Array.isArray(json.data)) {
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          dbProductsFound = true;
           setProducts(json.data);
           setStorageItem(PRODUCTS_KEY, json.data);
         }
@@ -67,7 +73,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (resBanners && resBanners.ok) {
         const json = await resBanners.json();
-        if (json.success && Array.isArray(json.data)) {
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           setBanners(json.data);
           setStorageItem(BANNERS_KEY, json.data);
         }
@@ -78,6 +84,23 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (json.success && json.announcementBar) {
           setAnnouncementText(json.announcementBar);
           setStorageItem(ANNOUNCEMENT_KEY, json.announcementBar);
+        }
+      }
+
+      // Si MySQL estaba vacío en la primera consulta pero este navegador (ej. Opera GX) tiene productos guardados localmente,
+      // sincronizamos automáticamente hacia MySQL en Hostinger para que estén disponibles en todos los dispositivos.
+      if (!dbProductsFound) {
+        const localProds = await getStorageItem<Product[]>(PRODUCTS_KEY, []);
+        if (Array.isArray(localProds) && localProds.length > 0) {
+          console.log("[Auto-Sync] Subiendo productos locales de este navegador a MySQL Hostinger...");
+          setProducts(localProds);
+          for (const p of localProds) {
+            fetch("/api/products", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(p),
+            }).catch(console.warn);
+          }
         }
       }
 
@@ -98,6 +121,43 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     refreshStoreData();
   }, []);
+
+  // Función manual para subir todo lo que tenga este navegador directamente a MySQL
+  const syncLocalToRemoteMySQL = async () => {
+    setIsSyncing(true);
+    try {
+      let count = 0;
+      for (const p of products) {
+        await fetch("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(p),
+        });
+        count++;
+      }
+
+      for (const b of banners) {
+        await fetch("/api/banners", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(b),
+        });
+      }
+
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ announcementBar: announcementText }),
+      });
+
+      await refreshStoreData();
+      return { success: true, message: `Se sincronizaron ${count} prendas y banners con MySQL de Hostinger exitosamente.` };
+    } catch (err: any) {
+      return { success: false, message: err?.message || "Error al sincronizar con MySQL" };
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Products
   const addProduct = async (prod: Product) => {
@@ -331,6 +391,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         sizeRequests,
         announcementText,
         isLoaded,
+        isSyncing,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -346,6 +407,7 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         deleteSizeRequest,
         resetToEmptyStore,
         refreshStoreData,
+        syncLocalToRemoteMySQL,
       }}
     >
       {children}
