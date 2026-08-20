@@ -42,14 +42,32 @@ interface StoreDataContextType {
 
 const StoreDataContext = createContext<StoreDataContextType | undefined>(undefined);
 
-export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [banners, setBanners] = useState<HomeBannerData[]>(INITIAL_BANNERS);
+interface StoreDataProviderProps {
+  children: React.ReactNode;
+  initialProducts?: Product[];
+  initialBanners?: HomeBannerData[];
+  initialAnnouncement?: string;
+}
+
+export const StoreDataProvider: React.FC<StoreDataProviderProps> = ({
+  children,
+  initialProducts,
+  initialBanners,
+  initialAnnouncement,
+}) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts ?? INITIAL_PRODUCTS);
+  const [banners, setBanners] = useState<HomeBannerData[]>(initialBanners ?? INITIAL_BANNERS);
   const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
   const [sizeRequests, setSizeRequests] = useState<SizeRequestRecord[]>(INITIAL_SIZE_REQUESTS);
-  const [announcementText, setAnnouncementText] = useState<string>(DEFAULT_ANNOUNCEMENT);
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [announcementText, setAnnouncementText] = useState<string>(initialAnnouncement ?? DEFAULT_ANNOUNCEMENT);
+  // Si llegaron datos del servidor, ya estamos cargados; si no, esperar el fetch
+  const [isLoaded, setIsLoaded] = useState<boolean>(
+    !!(initialProducts && initialProducts.length >= 0)
+  );
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Si no hubo datos del servidor (entorno local sin SSR), hacer fetch al montar
+  const needsFetch = !initialProducts;
 
   // Cargar datos directamente desde MySQL en Hostinger
   const refreshStoreData = async () => {
@@ -119,8 +137,11 @@ export const StoreDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   useEffect(() => {
-    refreshStoreData();
-  }, []);
+    // Solo hacer fetch inicial si no llegaron datos del servidor
+    if (needsFetch) {
+      refreshStoreData();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Función manual para subir todo lo que tenga este navegador directamente a MySQL
   const syncLocalToRemoteMySQL = async () => {
