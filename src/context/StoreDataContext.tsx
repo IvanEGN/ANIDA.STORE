@@ -1,19 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { Product, HomeBannerData, OrderRecord, SizeRequestRecord } from "@/types";
-import { INITIAL_BANNERS, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_SIZE_REQUESTS } from "@/data/initialData";
-import { getStorageItem, setStorageItem, clearAllStoreData } from "@/lib/storage";
 
-const PRODUCTS_KEY = "anida_products_v6";
-const BANNERS_KEY = "anida_banners_v6";
-const ORDERS_KEY = "anida_orders_v6";
-const REQUESTS_KEY = "anida_size_requests_v6";
-const ANNOUNCEMENT_KEY = "anida_announcement_v6";
-
-const DEFAULT_ANNOUNCEMENT =
-  "Envío sin costo en compras mayores a $1,499 MXN • Diseñado para almas libres y audaces";
-
+// ─────────────────────────────────────────────────────────────────────────────
+// Tipos
+// ─────────────────────────────────────────────────────────────────────────────
 interface StoreDataContextType {
   products: Product[];
   banners: HomeBannerData[];
@@ -37,11 +29,14 @@ interface StoreDataContextType {
   deleteSizeRequest: (id: string) => Promise<void>;
   resetToEmptyStore: () => Promise<void>;
   refreshStoreData: () => Promise<void>;
-  syncLocalToRemoteMySQL: () => Promise<{ success: boolean; message: string }>;
+  // syncLocalToRemoteMySQL ya no aplica — todo viene de MySQL via SSR
 }
 
 const StoreDataContext = createContext<StoreDataContextType | undefined>(undefined);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider — los datos iniciales vienen SIEMPRE del servidor (SSR en layout.tsx)
+// ─────────────────────────────────────────────────────────────────────────────
 interface StoreDataProviderProps {
   children: React.ReactNode;
   initialProducts?: Product[];
@@ -49,270 +44,145 @@ interface StoreDataProviderProps {
   initialAnnouncement?: string;
 }
 
+const DEFAULT_ANNOUNCEMENT =
+  "Envío sin costo en compras mayores a $1,499 MXN • Diseñado para almas libres y audaces";
+
 export const StoreDataProvider: React.FC<StoreDataProviderProps> = ({
   children,
-  initialProducts,
-  initialBanners,
-  initialAnnouncement,
+  initialProducts = [],
+  initialBanners = [],
+  initialAnnouncement = DEFAULT_ANNOUNCEMENT,
 }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts ?? INITIAL_PRODUCTS);
-  const [banners, setBanners] = useState<HomeBannerData[]>(initialBanners ?? INITIAL_BANNERS);
-  const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
-  const [sizeRequests, setSizeRequests] = useState<SizeRequestRecord[]>(INITIAL_SIZE_REQUESTS);
-  const [announcementText, setAnnouncementText] = useState<string>(initialAnnouncement ?? DEFAULT_ANNOUNCEMENT);
-  // Si llegaron datos del servidor, ya estamos cargados; si no, esperar el fetch
-  const [isLoaded, setIsLoaded] = useState<boolean>(
-    !!(initialProducts && initialProducts.length >= 0)
-  );
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [banners, setBanners] = useState<HomeBannerData[]>(initialBanners);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [sizeRequests, setSizeRequests] = useState<SizeRequestRecord[]>([]);
+  const [announcementText, setAnnouncementText] = useState<string>(initialAnnouncement);
+  // Si vienen datos del SSR ya estamos cargados
+  const [isLoaded] = useState<boolean>(true);
+  const [isSyncing] = useState<boolean>(false);
 
-  // Si no hubo datos del servidor (entorno local sin SSR), hacer fetch al montar
-  const needsFetch = !initialProducts;
-
-  // Cargar datos directamente desde MySQL en Hostinger
+  // ── Refresh desde la API (para actualizar después de mutaciones) ───────────
   const refreshStoreData = async () => {
     try {
       const [resProds, resBanners, resSettings] = await Promise.all([
-        fetch("/api/products", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }).catch(() => null),
-        fetch("/api/banners", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }).catch(() => null),
-        fetch("/api/settings", { cache: "no-store", headers: { "Cache-Control": "no-cache" } }).catch(() => null),
+        fetch("/api/products", { cache: "no-store" }).catch(() => null),
+        fetch("/api/banners", { cache: "no-store" }).catch(() => null),
+        fetch("/api/settings", { cache: "no-store" }).catch(() => null),
       ]);
 
-      let dbProductsFound = false;
-
-      if (resProds && resProds.ok) {
+      if (resProds?.ok) {
         const json = await resProds.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          dbProductsFound = true;
-          setProducts(json.data);
-          setStorageItem(PRODUCTS_KEY, json.data);
-        }
+        if (json.success && Array.isArray(json.data)) setProducts(json.data);
       }
-
-      if (resBanners && resBanners.ok) {
+      if (resBanners?.ok) {
         const json = await resBanners.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          setBanners(json.data);
-          setStorageItem(BANNERS_KEY, json.data);
-        }
+        if (json.success && Array.isArray(json.data)) setBanners(json.data);
       }
-
-      if (resSettings && resSettings.ok) {
+      if (resSettings?.ok) {
         const json = await resSettings.json();
-        if (json.success && json.announcementBar) {
-          setAnnouncementText(json.announcementBar);
-          setStorageItem(ANNOUNCEMENT_KEY, json.announcementBar);
-        }
+        if (json.success && json.announcementBar) setAnnouncementText(json.announcementBar);
       }
-
-      // Si MySQL estaba vacío en la primera consulta pero este navegador (ej. Opera GX) tiene productos guardados localmente,
-      // sincronizamos automáticamente hacia MySQL en Hostinger para que estén disponibles en todos los dispositivos.
-      if (!dbProductsFound) {
-        const localProds = await getStorageItem<Product[]>(PRODUCTS_KEY, []);
-        if (Array.isArray(localProds) && localProds.length > 0) {
-          console.log("[Auto-Sync] Subiendo productos locales de este navegador a MySQL Hostinger...");
-          setProducts(localProds);
-          for (const p of localProds) {
-            fetch("/api/products", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(p),
-            }).catch(console.warn);
-          }
-        }
-      }
-
-      const [savedOrders, savedRequests] = await Promise.all([
-        getStorageItem<OrderRecord[]>(ORDERS_KEY, INITIAL_ORDERS),
-        getStorageItem<SizeRequestRecord[]>(REQUESTS_KEY, INITIAL_SIZE_REQUESTS),
-      ]);
-
-      if (Array.isArray(savedOrders)) setOrders(savedOrders);
-      if (Array.isArray(savedRequests)) setSizeRequests(savedRequests);
     } catch (e) {
-      console.warn("[StoreDataContext] Error al consultar MySQL:", e);
-    } finally {
-      setIsLoaded(true);
+      console.warn("[StoreDataContext] Error al refrescar:", e);
     }
   };
 
-  useEffect(() => {
-    // Solo hacer fetch inicial si no llegaron datos del servidor
-    if (needsFetch) {
-      refreshStoreData();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Función manual para subir todo lo que tenga este navegador directamente a MySQL
-  const syncLocalToRemoteMySQL = async () => {
-    setIsSyncing(true);
-    try {
-      let count = 0;
-      for (const p of products) {
-        await fetch("/api/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(p),
-        });
-        count++;
-      }
-
-      for (const b of banners) {
-        await fetch("/api/banners", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(b),
-        });
-      }
-
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ announcementBar: announcementText }),
-      });
-
-      await refreshStoreData();
-      return { success: true, message: `Se sincronizaron ${count} prendas y banners con MySQL de Hostinger exitosamente.` };
-    } catch (err: any) {
-      return { success: false, message: err?.message || "Error al sincronizar con MySQL" };
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Products
+  // ── Products CRUD ──────────────────────────────────────────────────────────
   const addProduct = async (prod: Product) => {
-    const updated = [prod, ...products];
-    setProducts(updated);
-    await setStorageItem(PRODUCTS_KEY, updated);
-
     try {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prod),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al guardar en MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al guardar en MySQL");
+      setProducts((prev) => [prod, ...prev]);
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error guardando producto en MySQL:", e);
-      return { success: false, error: e?.message || "Error al guardar en base de datos" };
+      console.error("[StoreDataContext] addProduct:", e);
+      return { success: false, error: e?.message || "Error al guardar" };
     }
   };
 
   const updateProduct = async (prod: Product) => {
-    const updated = products.map((p) => (p.id === prod.id ? prod : p));
-    setProducts(updated);
-    await setStorageItem(PRODUCTS_KEY, updated);
-
     try {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prod),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al actualizar en MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al actualizar en MySQL");
+      setProducts((prev) => prev.map((p) => (p.id === prod.id ? prod : p)));
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error actualizando producto en MySQL:", e);
-      return { success: false, error: e?.message || "Error al actualizar en base de datos" };
+      console.error("[StoreDataContext] updateProduct:", e);
+      return { success: false, error: e?.message || "Error al actualizar" };
     }
   };
 
   const deleteProduct = async (id: string) => {
-    const updated = products.filter((p) => p.id !== id);
-    setProducts(updated);
-    await setStorageItem(PRODUCTS_KEY, updated);
-
     try {
       const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al eliminar de MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al eliminar de MySQL");
+      setProducts((prev) => prev.filter((p) => p.id !== id));
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error eliminando producto en MySQL:", e);
-      return { success: false, error: e?.message || "Error al eliminar de base de datos" };
+      console.error("[StoreDataContext] deleteProduct:", e);
+      return { success: false, error: e?.message || "Error al eliminar" };
     }
   };
 
-  // Banners
+  // ── Banners CRUD ───────────────────────────────────────────────────────────
   const addBanner = async (b: HomeBannerData) => {
-    const updated = [...banners, b];
-    setBanners(updated);
-    await setStorageItem(BANNERS_KEY, updated);
-
     try {
       const res = await fetch("/api/banners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(b),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al guardar banner en MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al guardar banner");
+      setBanners((prev) => [...prev, b]);
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error guardando banner en MySQL:", e);
-      return { success: false, error: e?.message || "Error al guardar banner en base de datos" };
+      return { success: false, error: e?.message || "Error al guardar banner" };
     }
   };
 
   const updateBanner = async (b: HomeBannerData) => {
-    const updated = banners.map((item) => (item.id === b.id ? b : item));
-    setBanners(updated);
-    await setStorageItem(BANNERS_KEY, updated);
-
     try {
       const res = await fetch("/api/banners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(b),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al actualizar banner en MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al actualizar banner");
+      setBanners((prev) => prev.map((item) => (item.id === b.id ? b : item)));
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error actualizando banner en MySQL:", e);
-      return { success: false, error: e?.message || "Error al actualizar banner en base de datos" };
+      return { success: false, error: e?.message || "Error al actualizar banner" };
     }
   };
 
   const deleteBanner = async (id: string) => {
-    const updated = banners.filter((item) => item.id !== id);
-    setBanners(updated);
-    await setStorageItem(BANNERS_KEY, updated);
-
     try {
       const res = await fetch(`/api/banners?id=${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al eliminar banner de MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al eliminar banner");
+      setBanners((prev) => prev.filter((item) => item.id !== id));
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error eliminando banner en MySQL:", e);
-      return { success: false, error: e?.message || "Error al eliminar banner de base de datos" };
+      return { success: false, error: e?.message || "Error al eliminar banner" };
     }
   };
 
   const setBannersList = async (list: HomeBannerData[]) => {
     setBanners(list);
-    await setStorageItem(BANNERS_KEY, list);
     list.forEach((b) => {
       fetch("/api/banners", {
         method: "POST",
@@ -322,84 +192,63 @@ export const StoreDataProvider: React.FC<StoreDataProviderProps> = ({
     });
   };
 
-  // Barra de Anuncios Superior
+  // ── Announcement ───────────────────────────────────────────────────────────
   const updateAnnouncementText = async (text: string) => {
     setAnnouncementText(text);
-    await setStorageItem(ANNOUNCEMENT_KEY, text);
-
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ announcementBar: text }),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error al actualizar anuncio en MySQL");
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || "Error al actualizar anuncio");
       return { success: true };
     } catch (e: any) {
-      console.error("[StoreDataContext] Error guardando anuncio en MySQL:", e);
-      return { success: false, error: e?.message || "Error al guardar anuncio en base de datos" };
+      return { success: false, error: e?.message || "Error al guardar anuncio" };
     }
   };
 
-  // Orders
+  // ── Orders ─────────────────────────────────────────────────────────────────
   const addOrder = async (order: OrderRecord) => {
-    const updated = [order, ...orders];
-    setOrders(updated);
-    await setStorageItem(ORDERS_KEY, updated);
+    setOrders((prev) => [order, ...prev]);
   };
 
   const updateOrderStatus = async (orderId: string, status: any) => {
-    const updated = orders.map((o) => (o.id === orderId ? { ...o, orderStatus: status } : o));
-    setOrders(updated);
-    await setStorageItem(ORDERS_KEY, updated);
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, orderStatus: status } : o)));
   };
 
-  // Size Requests
+  // ── Size Requests ──────────────────────────────────────────────────────────
   const addSizeRequest = (data: Omit<SizeRequestRecord, "id" | "createdAt" | "status">) => {
     const newRecord: SizeRequestRecord = {
       ...data,
       id: `req-${Date.now()}`,
-      createdAt: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+      createdAt: new Date().toLocaleDateString("es-MX", {
+        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+      }),
       status: "PENDING",
     };
-
-    const updated = [newRecord, ...sizeRequests];
-    setSizeRequests(updated);
-    setStorageItem(REQUESTS_KEY, updated);
+    setSizeRequests((prev) => [newRecord, ...prev]);
     return newRecord;
   };
 
   const updateSizeRequestStatus = async (requestId: string, status: "PENDING" | "CONTACTED" | "RESOLVED") => {
-    const updated = sizeRequests.map((r) => (r.id === requestId ? { ...r, status } : r));
-    setSizeRequests(updated);
-    await setStorageItem(REQUESTS_KEY, updated);
+    setSizeRequests((prev) => prev.map((r) => (r.id === requestId ? { ...r, status } : r)));
   };
 
   const deleteSizeRequest = async (id: string) => {
-    const updated = sizeRequests.filter((r) => r.id !== id);
-    setSizeRequests(updated);
-    await setStorageItem(REQUESTS_KEY, updated);
+    setSizeRequests((prev) => prev.filter((r) => r.id !== id));
   };
 
   const resetToEmptyStore = async () => {
-    await clearAllStoreData();
     setProducts([]);
+    setBanners([]);
     setOrders([]);
     setSizeRequests([]);
-    setBanners([]);
-    await setStorageItem(PRODUCTS_KEY, []);
-    await setStorageItem(BANNERS_KEY, []);
-    await setStorageItem(ORDERS_KEY, []);
-    await setStorageItem(REQUESTS_KEY, []);
-
     try {
       await fetch("/api/store/reset", { method: "POST" });
     } catch (e) {
-      console.error("[StoreDataContext] Error reseteando base de datos:", e);
+      console.error("[StoreDataContext] Error reseteando:", e);
     }
   };
 
@@ -428,7 +277,6 @@ export const StoreDataProvider: React.FC<StoreDataProviderProps> = ({
         deleteSizeRequest,
         resetToEmptyStore,
         refreshStoreData,
-        syncLocalToRemoteMySQL,
       }}
     >
       {children}
@@ -438,8 +286,6 @@ export const StoreDataProvider: React.FC<StoreDataProviderProps> = ({
 
 export const useStoreData = () => {
   const context = useContext(StoreDataContext);
-  if (!context) {
-    throw new Error("useStoreData must be used within a StoreDataProvider");
-  }
+  if (!context) throw new Error("useStoreData must be used within a StoreDataProvider");
   return context;
 };

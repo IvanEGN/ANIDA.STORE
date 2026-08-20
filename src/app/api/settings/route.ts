@@ -10,14 +10,16 @@ export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {
-    const setting = await prisma.storeSetting.findUnique({
-      where: { key: "announcement_bar" },
-    });
+    const [announcementSetting, templateSetting] = await Promise.all([
+      prisma.storeSetting.findUnique({ where: { key: "announcement_bar" } }),
+      prisma.storeSetting.findUnique({ where: { key: "active_template" } }),
+    ]);
 
     return NextResponse.json(
       {
         success: true,
-        announcementBar: setting?.value || DEFAULT_ANNOUNCEMENT,
+        announcementBar: announcementSetting?.value || DEFAULT_ANNOUNCEMENT,
+        activeTemplate: templateSetting?.value || "default",
       },
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
     );
@@ -27,6 +29,7 @@ export async function GET() {
       {
         success: true,
         announcementBar: DEFAULT_ANNOUNCEMENT,
+        activeTemplate: "default",
       },
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
     );
@@ -35,22 +38,34 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { announcementBar } = await request.json();
+    const body = await request.json();
+    const results: Record<string, string> = {};
 
-    if (typeof announcementBar !== "string") {
-      return NextResponse.json(
-        { success: false, error: "Texto de anuncio no válido" },
-        { status: 400 }
-      );
+    // Guardar texto de anuncio si viene
+    if (typeof body.announcementBar === "string") {
+      const updated = await prisma.storeSetting.upsert({
+        where: { key: "announcement_bar" },
+        update: { value: body.announcementBar.trim() },
+        create: { key: "announcement_bar", value: body.announcementBar.trim() },
+      });
+      results.announcementBar = updated.value;
     }
 
-    const updated = await prisma.storeSetting.upsert({
-      where: { key: "announcement_bar" },
-      update: { value: announcementBar.trim() },
-      create: { key: "announcement_bar", value: announcementBar.trim() },
-    });
+    // Guardar template activo si viene
+    if (typeof body.active_template === "string") {
+      const validTemplates = ["default", "otono", "invierno", "primavera", "verano"];
+      const template = validTemplates.includes(body.active_template)
+        ? body.active_template
+        : "default";
+      const updated = await prisma.storeSetting.upsert({
+        where: { key: "active_template" },
+        update: { value: template },
+        create: { key: "active_template", value: template },
+      });
+      results.activeTemplate = updated.value;
+    }
 
-    return NextResponse.json({ success: true, announcementBar: updated.value });
+    return NextResponse.json({ success: true, ...results });
   } catch (error) {
     console.error("[API Settings POST] Error:", error);
     return NextResponse.json(

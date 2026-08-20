@@ -5,7 +5,46 @@
 :root {
   --background: #FDFCFA;
   --foreground: #161616;
+  --accent: #161616;
+  --accent-light: #F4F1EA;
 }
+
+/* ── TEMPLATE: OTOÑO ─────────────────────────────────────────────── */
+html.template-otono {
+  --background: #F9F4EE;
+  --foreground: #2C1A0E;
+  --accent: #8B3A1A;
+  --accent-light: #F3DDD1;
+}
+html.template-otono body { background-color: var(--background); color: var(--foreground); }
+
+/* ── TEMPLATE: INVIERNO ──────────────────────────────────────────── */
+html.template-invierno {
+  --background: #F0F2F5;
+  --foreground: #0D1B2A;
+  --accent: #1E3A5F;
+  --accent-light: #DCE6F0;
+}
+html.template-invierno body { background-color: var(--background); color: var(--foreground); }
+
+/* ── TEMPLATE: PRIMAVERA ─────────────────────────────────────────── */
+html.template-primavera {
+  --background: #FDF8F5;
+  --foreground: #2A1F1F;
+  --accent: #A05070;
+  --accent-light: #F7E8ED;
+}
+html.template-primavera body { background-color: var(--background); color: var(--foreground); }
+
+/* ── TEMPLATE: VERANO ────────────────────────────────────────────── */
+html.template-verano {
+  --background: #FFFDF7;
+  --foreground: #1A1810;
+  --accent: #C4601A;
+  --accent-light: #FEF0DC;
+}
+html.template-verano body { background-color: var(--background); color: var(--foreground); }
+
 
 body {
   background-color: var(--background);

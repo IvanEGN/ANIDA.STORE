@@ -26,9 +26,10 @@ async function getServerData(): Promise<{
   products: Product[];
   banners: HomeBannerData[];
   announcement: string;
+  activeTemplate: string;
 }> {
   try {
-    const [dbProducts, dbBanners, dbSettings] = await Promise.all([
+    const [dbProducts, dbBanners, dbSettings, dbTemplateSetting] = await Promise.all([
       prisma.product.findMany({
         where: { isActive: true },
         include: { variants: true, images: true },
@@ -38,6 +39,7 @@ async function getServerData(): Promise<{
         orderBy: { displayOrder: "asc" },
       }),
       prisma.storeSetting.findUnique({ where: { key: "announcement_bar" } }),
+      prisma.storeSetting.findUnique({ where: { key: "active_template" } }),
     ]);
 
     const products: Product[] = dbProducts.map((p) => {
@@ -97,14 +99,16 @@ async function getServerData(): Promise<{
 
     const announcement =
       dbSettings?.value || "Envío sin costo en compras mayores a $1,499 MXN • Diseñado para almas libres y audaces";
+    const activeTemplate = dbTemplateSetting?.value || "default";
 
-    return { products, banners, announcement };
+    return { products, banners, announcement, activeTemplate };
   } catch (e) {
     console.error("[RootLayout] Error leyendo MySQL:", e);
     return {
       products: [],
       banners: [],
       announcement: "Envío sin costo en compras mayores a $1,499 MXN • Diseñado para almas libres y audaces",
+      activeTemplate: "default",
     };
   }
 }
@@ -114,10 +118,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { products, banners, announcement } = await getServerData();
+  const { products, banners, announcement, activeTemplate } = await getServerData();
+  const templateClass = activeTemplate !== "default" ? `template-${activeTemplate}` : "";
 
   return (
-    <html lang="es" className="scroll-smooth">
+    <html lang="es" className={`scroll-smooth ${templateClass}`.trim()}>
       <body className="min-h-screen flex flex-col bg-background text-charcoal-950 antialiased font-sans">
         <AuthProvider>
           <StoreDataProvider
