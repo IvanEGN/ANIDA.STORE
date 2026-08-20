@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleQuickAdminLogin = async () => {
     setIsLoggingIn(true);
-    await login("anidabyad@gmail.com", "admin-pass", "Administrador ANIDA");
+    await login("anida.store.mid@gmail.com", "Hermanos_2001", "Administrador ANIDA");
     setAuthorized(true);
     setIsLoggingIn(false);
   };
@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <p className="text-xs text-charcoal-500 font-light leading-relaxed">
               Inicia sesión como administrador para gestionar catálogo, banners y pedidos en MySQL:
               <br />
-              <strong className="text-charcoal-900 font-mono">anidabyad@gmail.com</strong>
+              <strong className="text-charcoal-900 font-mono">anida.store.mid@gmail.com</strong>
             </p>
           </div>
 

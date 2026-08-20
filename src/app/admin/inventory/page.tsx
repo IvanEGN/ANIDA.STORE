@@ -63,11 +63,22 @@ export default function AdminInventoryPage() {
 
     setIsOptimizing(true);
     try {
-      const result = await convertImageToWebP(file, 1400, 0.85);
-      setFormPrimaryImg(result.dataUrl);
+      const result = await convertImageToWebP(file, 1200, 0.82);
+      let finalUrl = result.dataUrl;
+      try {
+        const formData = new FormData();
+        formData.append("file", result.file);
+        const upRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const upData = await upRes.json();
+        if (upRes.ok && upData.success && upData.url) {
+          finalUrl = upData.url;
+        }
+      } catch (_) {}
+
+      setFormPrimaryImg(finalUrl);
       const savings = Math.round((1 - result.optimizedSize / result.originalSize) * 100);
       setCompressionStats(
-        `✓ Imagen convertida a WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% más ligera)`
+        `✓ Foto lista (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
       );
     } catch (err) {
       console.error(err);
@@ -84,8 +95,19 @@ export default function AdminInventoryPage() {
 
     setIsOptimizing(true);
     try {
-      const result = await convertImageToWebP(file, 1400, 0.85);
-      setFormHoverImg(result.dataUrl);
+      const result = await convertImageToWebP(file, 1200, 0.82);
+      let finalUrl = result.dataUrl;
+      try {
+        const formData = new FormData();
+        formData.append("file", result.file);
+        const upRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const upData = await upRes.json();
+        if (upRes.ok && upData.success && upData.url) {
+          finalUrl = upData.url;
+        }
+      } catch (_) {}
+
+      setFormHoverImg(finalUrl);
     } catch (err) {
       console.error(err);
       alert("Error al procesar la imagen.");

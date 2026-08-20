@@ -3,9 +3,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 export const ADMIN_EMAILS = [
-  "anidabyad@gmail.com",
   "anida.store.mid@gmail.com",
+  "anidabyad@gmail.com",
 ];
+
+export const ADMIN_PASSWORD = "Hermanos_2001";
 
 export interface UserProfile {
   id: string;
@@ -51,6 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const isAdministrator = ADMIN_EMAILS.some((adm) => adm.toLowerCase() === cleanEmail);
 
+    if (isAdministrator && password && password !== ADMIN_PASSWORD) {
+      return { success: false, error: "Contraseña de administrador incorrecta." };
+    }
+
     const loggedUser: UserProfile = {
       id: `usr-${Date.now()}`,
       name: name || (isAdministrator ? "Administrador ANIDA" : cleanEmail.split("@")[0]),
@@ -62,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(loggedUser);
     localStorage.setItem("anida_auth_user", JSON.stringify(loggedUser));
 
-    // Opcional: registrar o verificar en MySQL de Hostinger
+    // Registrar en MySQL
     try {
       await fetch("/api/auth/register", {
         method: "POST",

@@ -122,13 +122,24 @@ export default function AdminBannersPage() {
 
     setIsOptimizingDesktop(true);
     try {
-      const result = await convertImageToWebP(file, 2000, 0.88);
-      const updated = { ...formState, mediaUrl: result.dataUrl };
+      const result = await convertImageToWebP(file, 1920, 0.85);
+      let finalUrl = result.dataUrl;
+      try {
+        const formData = new FormData();
+        formData.append("file", result.file);
+        const upRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const upData = await upRes.json();
+        if (upRes.ok && upData.success && upData.url) {
+          finalUrl = upData.url;
+        }
+      } catch (_) {}
+
+      const updated = { ...formState, mediaUrl: finalUrl };
       setFormState(updated);
       await updateBanner(updated);
       const savings = Math.round((1 - result.optimizedSize / result.originalSize) * 100);
       setCompressionInfoDesktop(
-        `✓ Foto escritorio en WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
+        `✓ Foto escritorio lista (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
       );
     } catch (err) {
       console.error(err);
@@ -146,12 +157,23 @@ export default function AdminBannersPage() {
     setIsOptimizingMobile(true);
     try {
       const result = await convertImageToWebP(file, 1080, 0.85);
-      const updated = { ...formState, mobileMediaUrl: result.dataUrl };
+      let finalUrl = result.dataUrl;
+      try {
+        const formData = new FormData();
+        formData.append("file", result.file);
+        const upRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const upData = await upRes.json();
+        if (upRes.ok && upData.success && upData.url) {
+          finalUrl = upData.url;
+        }
+      } catch (_) {}
+
+      const updated = { ...formState, mobileMediaUrl: finalUrl };
       setFormState(updated);
       await updateBanner(updated);
       const savings = Math.round((1 - result.optimizedSize / result.originalSize) * 100);
       setCompressionInfoMobile(
-        `✓ Foto móvil en WebP (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
+        `✓ Foto móvil lista (${Math.round(result.optimizedSize / 1024)} KB - ${savings}% optimizada)`
       );
     } catch (err) {
       console.error(err);
