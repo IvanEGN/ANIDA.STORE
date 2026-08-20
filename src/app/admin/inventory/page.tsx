@@ -134,18 +134,26 @@ export default function AdminInventoryPage() {
       })),
     };
 
+    let res;
     if (editingProduct) {
-      await updateProduct(productPayload);
+      res = await updateProduct(productPayload);
     } else {
-      await addProduct(productPayload);
+      res = await addProduct(productPayload);
     }
 
-    setIsModalOpen(false);
+    if (!res.success) {
+      alert("Atención: " + (res.error || "No se pudo guardar en la base de datos de Hostinger."));
+    } else {
+      setIsModalOpen(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("¿Deseas eliminar permanentemente esta prenda?")) {
-      await deleteProduct(id);
+    if (confirm("¿Deseas eliminar permanentemente esta prenda de la base de datos?")) {
+      const res = await deleteProduct(id);
+      if (!res.success) {
+        alert("Error al eliminar: " + (res.error || "Error de base de datos"));
+      }
     }
   };
 

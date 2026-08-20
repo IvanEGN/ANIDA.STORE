@@ -163,16 +163,24 @@ export default function AdminBannersPage() {
 
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateBanner(formState);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
+    const res = await updateBanner(formState);
+    if (!res.success) {
+      alert("Error al guardar banner: " + (res.error || "Error de base de datos"));
+    } else {
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
+    }
   };
 
   const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateAnnouncementText(formAnnouncement);
-    setAnnouncementSaved(true);
-    setTimeout(() => setAnnouncementSaved(false), 2500);
+    const res = await updateAnnouncementText(formAnnouncement);
+    if (!res.success) {
+      alert("Error al guardar anuncio: " + (res.error || "Error de base de datos"));
+    } else {
+      setAnnouncementSaved(true);
+      setTimeout(() => setAnnouncementSaved(false), 2500);
+    }
   };
 
   return (
